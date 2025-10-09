@@ -164,7 +164,7 @@ class TelegramWebAppClient {
   /**
    * Send data to bot
    */
-  sendData(data: any) {
+  sendData(data: Record<string, unknown>) {
     if (!this.webapp) return
     this.webapp.sendData(JSON.stringify(data))
   }

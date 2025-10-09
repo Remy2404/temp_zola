@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Input } from "@/components/ui/input"
 import {
   Tooltip,
@@ -322,10 +323,10 @@ function CustomCommandDialog({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
       >
-        <DialogHeader className="sr-only">
+        <VisuallyHidden>
           <DialogTitle id={titleId}>{title}</DialogTitle>
           <DialogDescription id={descriptionId}>{description}</DialogDescription>
-        </DialogHeader>
+        </VisuallyHidden>
         <Command className="[&_[cmdk-group-heading]]:text-muted-foreground border-none **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-item]_svg]:border-none">
           {children}
         </Command>

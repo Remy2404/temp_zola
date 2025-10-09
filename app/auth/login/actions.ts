@@ -1,31 +1,13 @@
 "use server"
 
 import { toast } from "@/components/ui/toast"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
 
 export async function signOut() {
-  if (!isSupabaseEnabled) {
-    toast({
-      title: "Sign out is not supported in this deployment",
-      status: "info",
-    })
-    return
-  }
-
-  const supabase = await createClient()
-
-  if (!supabase) {
-    toast({
-      title: "Sign out is not supported in this deployment",
-      status: "info",
-    })
-    return
-  }
-
-  await supabase.auth.signOut()
-  revalidatePath("/", "layout")
-  redirect("/auth/login")
+  // Since Supabase has been removed and we use Telegram authentication,
+  // sign out is handled by the Telegram Mini App
+  toast({
+    title: "Sign out through Telegram",
+    description: "Please use Telegram's interface to sign out",
+    status: "info",
+  })
 }

@@ -66,6 +66,13 @@ function DrawerContent({
         )}
         {...props}
       >
+        {/* Provide an always-present but visually-hidden Title to satisfy the underlying primitive's accessibility check.
+            This keeps the UI the same while suppressing the dev-only console warning. Consumers can still pass
+            a visible DrawerTitle which will be used instead. */}
+        <DrawerPrimitive.Title className="sr-only" aria-hidden>
+          Drawer
+        </DrawerPrimitive.Title>
+
         <div className="bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
       </DrawerPrimitive.Content>

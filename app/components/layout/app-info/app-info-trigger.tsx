@@ -18,6 +18,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { APP_NAME } from "@/lib/config"
 import { Info } from "@phosphor-icons/react"
 import Image from "next/image"
@@ -42,6 +43,14 @@ export function AppInfoTrigger({ trigger }: AppInfoTriggerProps) {
       <Drawer>
         <DrawerTrigger asChild>{trigger || defaultTrigger}</DrawerTrigger>
         <DrawerContent className="bg-background border-border">
+          <VisuallyHidden>
+            <DrawerTitle>{APP_NAME}</DrawerTitle>
+          </VisuallyHidden>
+          <VisuallyHidden>
+            <DrawerDescription>
+              Your minimalist AI chat companion
+            </DrawerDescription>
+          </VisuallyHidden>
           <DrawerHeader>
             <Image
               src="/banner_ocean.jpg"
@@ -50,10 +59,6 @@ export function AppInfoTrigger({ trigger }: AppInfoTriggerProps) {
               height={128}
               className="h-32 w-full object-cover"
             />
-            <DrawerTitle className="hidden">{APP_NAME}</DrawerTitle>
-            <DrawerDescription className="hidden">
-              Your minimalist AI chat companion
-            </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-6">
             <AppInfoContent />
@@ -67,6 +72,12 @@ export function AppInfoTrigger({ trigger }: AppInfoTriggerProps) {
     <Dialog>
       <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
       <DialogContent className="[&>button:last-child]:bg-background gap-0 overflow-hidden rounded-3xl p-0 shadow-xs sm:max-w-md [&>button:last-child]:rounded-full [&>button:last-child]:p-1">
+        <VisuallyHidden>
+          <DialogTitle>{APP_NAME}</DialogTitle>
+          <DialogDescription>
+            Your minimalist AI chat companion
+          </DialogDescription>
+        </VisuallyHidden>
         <DialogHeader className="p-0">
           <Image
             src="/banner_ocean.jpg"
@@ -75,10 +86,6 @@ export function AppInfoTrigger({ trigger }: AppInfoTriggerProps) {
             height={128}
             className="h-32 w-full object-cover"
           />
-          <DialogTitle className="hidden">{APP_NAME}</DialogTitle>
-          <DialogDescription className="hidden">
-            Your minimalist AI chat companion
-          </DialogDescription>
         </DialogHeader>
         <div className="p-4">
           <AppInfoContent />

@@ -204,18 +204,27 @@ function MorphingDialogContent({
   })
 
   return (
-    <motion.div
-      ref={containerRef}
-      layoutId={`dialog-${uniqueId}`}
-      className={cn("overflow-hidden", className)}
-      style={style}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`motion-ui-morphing-dialog-title-${uniqueId}`}
-      aria-describedby={`motion-ui-morphing-dialog-description-${uniqueId}`}
-    >
-      {children}
-    </motion.div>
+    <>
+      {/* Visually hidden title for screen readers */}
+      <div className="sr-only" id={`motion-ui-morphing-dialog-title-${uniqueId}`}>
+        Dialog
+      </div>
+      <div className="sr-only" id={`motion-ui-morphing-dialog-description-${uniqueId}`}>
+        Interactive dialog content
+      </div>
+      <motion.div
+        ref={containerRef}
+        layoutId={`dialog-${uniqueId}`}
+        className={cn("overflow-hidden", className)}
+        style={style}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`motion-ui-morphing-dialog-title-${uniqueId}`}
+        aria-describedby={`motion-ui-morphing-dialog-description-${uniqueId}`}
+      >
+        {children}
+      </motion.div>
+    </>
   )
 }
 

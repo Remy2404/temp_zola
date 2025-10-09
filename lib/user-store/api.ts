@@ -1,32 +1,35 @@
 // @todo: move in /lib/user/api.ts
 import { toast } from "@/components/ui/toast"
-import { createClient } from "@/lib/supabase/client"
 import type { UserProfile } from "@/lib/user/types"
+import { polymindFetch } from "@/lib/polymind/api"
 
 export async function fetchUserProfile(
   id: string
 ): Promise<UserProfile | null> {
-  const supabase = createClient()
-  if (!supabase) return null
+  try {
+    const response = await polymindFetch('/webapp/user', { method: 'GET' })
+    if (!response.ok) {
+      console.error("Failed to fetch user:", response.statusText)
+      return null
+    }
+    const userData = await response.json()
 
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", id)
-    .single()
-
-  if (error || !data) {
+    // Transform backend user data to UserProfile format
+    return {
+      id: userData.id,
+      first_name: userData.first_name,
+      last_name: userData.last_name,
+      username: userData.username,
+      language_code: userData.language_code,
+      is_premium: userData.is_premium,
+      photo_url: userData.photo_url,
+      profile_image: userData.photo_url || "",
+      display_name: userData.first_name + (userData.last_name ? ` ${userData.last_name}` : ''),
+      anonymous: false,
+    }
+  } catch (error) {
     console.error("Failed to fetch user:", error)
     return null
-  }
-
-  // Don't return anonymous users
-  if (data.anonymous) return null
-
-  return {
-    ...data,
-    profile_image: data.profile_image || "",
-    display_name: data.display_name || "",
   }
 }
 
@@ -34,62 +37,33 @@ export async function updateUserProfile(
   id: string,
   updates: Partial<UserProfile>
 ): Promise<boolean> {
-  const supabase = createClient()
-  if (!supabase) return false
-
-  const { error } = await supabase.from("users").update(updates).eq("id", id)
-
-  if (error) {
-    console.error("Failed to update user:", error)
-    return false
-  }
-
-  return true
+  // Note: User profile updates are not supported in the current Telegram Mini App architecture
+  // User data comes from Telegram and cannot be modified
+  console.warn("User profile updates are not supported")
+  toast({
+    title: "Profile update not supported",
+    description: "User profiles are managed by Telegram",
+    status: "info",
+  })
+  return false
 }
 
 export async function signOutUser(): Promise<boolean> {
-  const supabase = createClient()
-  if (!supabase) {
-    toast({
-      title: "Sign out is not supported in this deployment",
-      status: "info",
-    })
-    return false
-  }
-
-  const { error } = await supabase.auth.signOut()
-  if (error) {
-    console.error("Failed to sign out:", error)
-    return false
-  }
-
-  return true
+  // In Telegram Mini Apps, there's no sign out - users close the app
+  toast({
+    title: "Sign out not available",
+    description: "Please close the Telegram Mini App to sign out",
+    status: "info",
+  })
+  return false
 }
 
 export function subscribeToUserUpdates(
   userId: string,
   onUpdate: (newData: Partial<UserProfile>) => void
 ) {
-  const supabase = createClient()
-  if (!supabase) return () => {}
-
-  const channel = supabase
-    .channel(`public:users:id=eq.${userId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "users",
-        filter: `id=eq.${userId}`,
-      },
-      (payload) => {
-        onUpdate(payload.new as Partial<UserProfile>)
-      }
-    )
-    .subscribe()
-
-  return () => {
-    supabase.removeChannel(channel)
-  }
+  // No realtime subscriptions in the current architecture
+  // User data is static from Telegram init data
+  console.warn("User update subscriptions are not supported")
+  return () => {}
 }

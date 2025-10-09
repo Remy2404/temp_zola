@@ -72,8 +72,8 @@ export function Chat() {
   const [hasDialogAuth, setHasDialogAuth] = useState(false)
   const isAuthenticated = useMemo(() => !!user?.id, [user?.id])
   const systemPrompt = useMemo(
-    () => user?.system_prompt || SYSTEM_PROMPT_DEFAULT,
-    [user?.system_prompt]
+    () => SYSTEM_PROMPT_DEFAULT,
+    []
   )
 
   // New state for quoted text
@@ -263,7 +263,7 @@ export function Chat() {
         <ChatInput {...chatInputProps} />
       </motion.div>
 
-      <FeedbackWidget authUserId={user?.id} />
+      <FeedbackWidget authUserId={user?.id?.toString()} />
     </div>
   )
 }

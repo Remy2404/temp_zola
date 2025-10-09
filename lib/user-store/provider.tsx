@@ -36,7 +36,7 @@ export function UserProvider({
 
     setIsLoading(true)
     try {
-      const updatedUser = await fetchUserProfile(user.id)
+      const updatedUser = await fetchUserProfile(user.id.toString())
       if (updatedUser) setUser(updatedUser)
     } finally {
       setIsLoading(false)
@@ -48,7 +48,7 @@ export function UserProvider({
 
     setIsLoading(true)
     try {
-      const success = await updateUserProfile(user.id, updates)
+      const success = await updateUserProfile(user.id.toString(), updates)
       if (success) {
         setUser((prev) => (prev ? { ...prev, ...updates } : null))
       }
@@ -71,7 +71,7 @@ export function UserProvider({
   useEffect(() => {
     if (!user?.id) return
 
-    const unsubscribe = subscribeToUserUpdates(user.id, (newData) => {
+    const unsubscribe = subscribeToUserUpdates(user.id.toString(), (newData) => {
       setUser((prev) => (prev ? { ...prev, ...newData } : null))
     })
 

@@ -135,7 +135,7 @@ export async function* streamChatResponse(params: {
           try {
             const parsed = JSON.parse(data)
             yield parsed
-          } catch (e) {
+          } catch {
             console.error('Failed to parse SSE data:', data)
           }
         }
@@ -237,7 +237,7 @@ export async function getUserPreferences() {
 /**
  * Update user preferences
  */
-export async function updateUserPreferences(preferences: Record<string, any>) {
+export async function updateUserPreferences(preferences: Record<string, unknown>) {
   try {
     const response = await polymindFetch('/webapp/user/preferences', {
       method: 'POST',
@@ -255,7 +255,7 @@ export async function updateUserPreferences(preferences: Record<string, any>) {
   }
 }
 
-export default {
+const polymindApi = {
   getModels,
   streamChatResponse,
   createChat,
@@ -264,3 +264,5 @@ export default {
   getUserPreferences,
   updateUserPreferences,
 }
+
+export default polymindApi

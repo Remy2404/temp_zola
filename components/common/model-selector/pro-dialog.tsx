@@ -16,8 +16,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { APP_NAME } from "@/lib/config"
-import { createClient } from "@/lib/supabase/client"
 import { useUser } from "@/lib/user-store/provider"
 import { useMutation } from "@tanstack/react-query"
 import Image from "next/image"
@@ -37,16 +37,9 @@ export function ProModelDialog({
   const isMobile = useBreakpoint(768)
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error("Missing user")
-
-      const supabase = await createClient()
-      if (!supabase) throw new Error("Missing supabase")
-      const { error } = await supabase.from("feedback").insert({
-        message: `I want access to ${currentModel}`,
-        user_id: user.id,
-      })
-
-      if (error) throw new Error(error.message)
+      // Feedback submission disabled - Supabase removed
+      // Users can add their own API keys instead
+      throw new Error("Feedback submission not available")
     },
   })
 
@@ -112,9 +105,9 @@ export function ProModelDialog({
     return (
       <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerContent className="px-0">
-          <DrawerHeader className="sr-only">
+          <VisuallyHidden>
             <DrawerTitle>Pro Model Access Required</DrawerTitle>
-          </DrawerHeader>
+          </VisuallyHidden>
           {renderContent()}
         </DrawerContent>
       </Drawer>
@@ -124,10 +117,10 @@ export function ProModelDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="[&>button:last-child]:bg-background gap-0 overflow-hidden rounded-3xl p-0 shadow-xs sm:max-w-md [&>button:last-child]:rounded-full [&>button:last-child]:p-1">
-        <DialogHeader className="sr-only">
+        <VisuallyHidden>
           <DialogTitle>Pro Model Access Required</DialogTitle>
           <DialogDescription>Upgrade to access premium AI models and features.</DialogDescription>
-        </DialogHeader>
+        </VisuallyHidden>
         {renderContent()}
       </DialogContent>
     </Dialog>

@@ -1,5 +1,4 @@
-import { isSupabaseEnabled } from "@/lib/supabase/config"
-import { createClient } from "@/lib/supabase/server"
+import { fetchClient } from "@/lib/fetch"
 import {
   convertFromApiFormat,
   defaultPreferences,
@@ -7,50 +6,34 @@ import {
 import type { UserProfile } from "./types"
 
 export async function getSupabaseUser() {
-  const supabase = await createClient()
-  if (!supabase) return { supabase: null, user: null }
-
-  const { data } = await supabase.auth.getUser()
-  return {
-    supabase,
-    user: data.user ?? null,
-  }
+  // Since Supabase has been removed, return null
+  return { supabase: null, user: null }
 }
 
 export async function getUserProfile(): Promise<UserProfile | null> {
-  if (!isSupabaseEnabled) {
-    // return fake user profile for no supabase
+  try {
+    // Get user profile from backend API
+    const response = await fetchClient("/webapp/user", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    })
+    const userData = await response.json()
+    if (!response.ok) {
+      console.error("Failed to fetch user profile:", response.statusText)
+      return null
+    }
+
+    // Format user preferences if they exist
+    const formattedPreferences = userData?.user_preferences
+      ? convertFromApiFormat(userData.user_preferences)
+      : defaultPreferences
+
     return {
-      id: "guest",
-      email: "guest@polymind.chat",
-      display_name: "Guest",
-      profile_image: "",
-      anonymous: true,
-      preferences: defaultPreferences,
+      ...userData,
+      preferences: formattedPreferences,
     } as UserProfile
+  } catch (error) {
+    console.error("Error fetching user profile:", error)
+    return null
   }
-
-  const { supabase, user } = await getSupabaseUser()
-  if (!supabase || !user) return null
-
-  const { data: userProfileData } = await supabase
-    .from("users")
-    .select("*, user_preferences(*)")
-    .eq("id", user.id)
-    .single()
-
-  // Don't load anonymous users in the user store
-  if (userProfileData?.anonymous) return null
-
-  // Format user preferences if they exist
-  const formattedPreferences = userProfileData?.user_preferences
-    ? convertFromApiFormat(userProfileData.user_preferences)
-    : undefined
-
-  return {
-    ...userProfileData,
-    profile_image: user.user_metadata?.avatar_url ?? "",
-    display_name: user.user_metadata?.name ?? "",
-    preferences: formattedPreferences,
-  } as UserProfile
 }

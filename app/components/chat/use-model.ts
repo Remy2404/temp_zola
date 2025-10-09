@@ -28,13 +28,12 @@ export function useModel({
 }: UseModelProps) {
   const { models } = useModelStore()
   
-  // Calculate the effective model based on priority: chat model > first favorite model > first available model
+  // Calculate the effective model based on priority: chat model > first available model
   const getEffectiveModel = useCallback(() => {
-    const firstFavoriteModel = user?.favorite_models?.[0]
     const firstAvailableModel = models?.[0]?.id
     // Always return a valid model with ultimate fallback to gemini
-    return currentChat?.model || firstFavoriteModel || firstAvailableModel || "gemini/gemini-2.0-flash-exp"
-  }, [currentChat?.model, user?.favorite_models, models])
+    return currentChat?.model || firstAvailableModel || "gemini/gemini-2.0-flash-exp"
+  }, [currentChat?.model, models])
 
   // Use local state only for temporary overrides, derive base value from props
   const [localSelectedModel, setLocalSelectedModel] = useState<string | null>(

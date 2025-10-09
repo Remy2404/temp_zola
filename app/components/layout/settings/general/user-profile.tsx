@@ -25,7 +25,7 @@ export function UserProfile() {
         </div>
         <div>
           <h4 className="text-sm font-medium">{user?.display_name}</h4>
-          <p className="text-muted-foreground text-sm">{user?.email}</p>
+          <p className="text-muted-foreground text-sm">Telegram User</p>
         </div>
       </div>
     </div>

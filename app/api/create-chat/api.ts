@@ -16,45 +16,17 @@ export async function createChatInDb({
   isAuthenticated,
   projectId,
 }: CreateChatInput) {
-  const supabase = await validateUserIdentity(userId, isAuthenticated)
-  if (!supabase) {
-    return {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      title,
-      model,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  }
+  // Since Supabase has been removed, chat creation is handled by backend API
+  // For now, return a mock chat object for frontend compatibility
+  await checkUsageByModel(userId, model, isAuthenticated)
 
-  await checkUsageByModel(supabase, userId, model, isAuthenticated)
-
-  const insertData: {
-    user_id: string
-    title: string
-    model: string
-    project_id?: string
-  } = {
+  return {
+    id: crypto.randomUUID(),
     user_id: userId,
     title: title || "New Chat",
     model,
+    project_id: projectId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
-
-  if (projectId) {
-    insertData.project_id = projectId
-  }
-
-  const { data, error } = await supabase
-    .from("chats")
-    .insert(insertData)
-    .select("*")
-    .single()
-
-  if (error || !data) {
-    console.error("Error creating chat:", error)
-    return null
-  }
-
-  return data
 }

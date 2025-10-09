@@ -61,8 +61,8 @@ export function useChatCore({
   const prevChatIdRef = useRef<string | null>(chatId)
   const isAuthenticated = useMemo(() => !!user?.id, [user?.id])
   const systemPrompt = useMemo(
-    () => user?.system_prompt || SYSTEM_PROMPT_DEFAULT,
-    [user?.system_prompt]
+    () => SYSTEM_PROMPT_DEFAULT,
+    []
   )
 
   // Search params handling

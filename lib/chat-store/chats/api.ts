@@ -1,7 +1,5 @@
 import { readFromIndexedDB, writeToIndexedDB } from "@/lib/chat-store/persist"
 import type { Chat, Chats } from "@/lib/chat-store/types"
-import { createClient } from "@/lib/supabase/client"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
 import { fetchClient } from "../../fetch"
 import { polymindFetch } from "../../polymind/api"
 import {
@@ -9,165 +7,88 @@ import {
   API_ROUTE_UPDATE_CHAT_MODEL,
 } from "../../routes"
 
-export async function getChatsForUserInDb(userId: string): Promise<Chats[]> {
-  const supabase = createClient()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from("chats")
-    .select("*")
-    .eq("user_id", userId)
-    .order("pinned", { ascending: false })
-    .order("pinned_at", { ascending: false, nullsFirst: false })
-    .order("updated_at", { ascending: false })
-
-  if (!data || error) {
-    console.error("Failed to fetch chats:", error)
-    return []
-  }
-
-  return data
-}
-
-export async function updateChatTitleInDb(id: string, title: string) {
-  const supabase = createClient()
-  if (!supabase) return
-
-  const { error } = await supabase
-    .from("chats")
-    .update({ title, updated_at: new Date().toISOString() })
-    .eq("id", id)
-  if (error) throw error
-}
-
-export async function deleteChatInDb(id: string) {
-  const supabase = createClient()
-  if (!supabase) return
-
-  const { error } = await supabase.from("chats").delete().eq("id", id)
-  if (error) throw error
-}
-
-export async function getAllUserChatsInDb(userId: string): Promise<Chats[]> {
-  const supabase = createClient()
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from("chats")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-
-  if (!data || error) return []
-  return data
-}
-
-export async function createChatInDb(
-  userId: string,
-  title: string,
-  model: string,
-  systemPrompt: string
-): Promise<string | null> {
-  const supabase = createClient()
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from("chats")
-    .insert({ user_id: userId, title, model, system_prompt: systemPrompt })
-    .select("id")
-    .single()
-
-  if (error || !data?.id) return null
-  return data.id
-}
-
-export async function fetchAndCacheChats(userId: string): Promise<Chats[]> {
-  if (!isSupabaseEnabled) {
-    // Use MongoDB backend instead of Supabase
-    try {
-      console.log('[ChatsAPI] Fetching sessions from MongoDB backend...')
-      
-      // CRITICAL FIX: Wait for Telegram to initialize before making authenticated requests
-      const { telegramWebApp } = await import('@/lib/telegram/client')
-      if (!telegramWebApp.isInitialized()) {
-        console.log('[ChatsAPI] Waiting for Telegram initialization...')
-        const initPromise = new Promise<boolean>((resolve) => {
-          const checkInit = () => {
-            if (telegramWebApp.isInitialized()) {
-              resolve(true)
-            } else {
-              setTimeout(checkInit, 100)
-            }
+/**
+ * Fetch chat sessions from MongoDB backend and cache them in IndexedDB
+ */
+export async function fetchAndCacheChats(): Promise<Chats[]> {
+  try {
+    console.log('[ChatsAPI] Fetching sessions from MongoDB backend...')
+    
+    // CRITICAL FIX: Wait for Telegram to initialize before making authenticated requests
+    const { telegramWebApp } = await import('@/lib/telegram/client')
+    if (!telegramWebApp.isInitialized()) {
+      console.log('[ChatsAPI] Waiting for Telegram initialization...')
+      const initPromise = new Promise<boolean>((resolve) => {
+        const checkInit = () => {
+          if (telegramWebApp.isInitialized()) {
+            resolve(true)
+          } else {
+            setTimeout(checkInit, 100)
           }
-          checkInit()
-          // Timeout after 5 seconds
-          setTimeout(() => resolve(false), 5000)
-        })
-        
-        const initialized = await initPromise
-        if (!initialized) {
-          console.warn('[ChatsAPI] Telegram initialization timeout - cannot fetch sessions without auth')
-          // Return cached data if available
-          return await getCachedChats()
         }
-      }
-      
-      const response = await polymindFetch('/webapp/sessions', {
-        method: 'GET',
+        checkInit()
+        // Timeout after 5 seconds
+        setTimeout(() => resolve(false), 5000)
       })
       
-      console.log(`[ChatsAPI] Response status: ${response.status} ${response.statusText}`)
-      
-      if (response.ok) {
-        const sessions = await response.json()
-        console.log(`[ChatsAPI] Received sessions:`, sessions)
-        
-        // Convert backend ChatSession format to frontend Chats format
-        const chats: Chats[] = sessions.map((session: any) => ({
-          id: session.id,
-          title: session.title,
-          created_at: session.created_at,
-          updated_at: session.updated_at,
-          model: session.model,
-          user_id: session.user_id,
-          public: true,
-          pinned: session.pinned || false,
-          pinned_at: session.pinned_at || null,
-          project_id: null,
-        }))
-        
-        // CRITICAL FIX: Always update cache with fresh data from backend
-        // This ensures cache is cleared when backend returns empty array
-        await writeToIndexedDB("chats", chats)
-        console.log(`[ChatsAPI] Updated IndexedDB cache with ${chats.length} sessions`)
-        
-        return chats
-      } else if (response.status === 401) {
-        console.error(`[ChatsAPI] Authentication failed - clearing cache`)
-        // Clear cache on auth failure
-        await writeToIndexedDB("chats", [])
-        return []
-      } else {
-        const errorText = await response.text()
-        console.error(`[ChatsAPI] Failed to fetch sessions: ${response.status} ${response.statusText}`)
-        console.error(`[ChatsAPI] Error response:`, errorText)
+      const initialized = await initPromise
+      if (!initialized) {
+        console.warn('[ChatsAPI] Telegram initialization timeout - cannot fetch sessions without auth')
+        // Return cached data if available
+        return await getCachedChats()
       }
-    } catch (error) {
-      console.error('[ChatsAPI] Error fetching chats from MongoDB backend:', error)
     }
     
-    // Fallback to cached chats if backend fails
-    console.log('[ChatsAPI] Falling back to cached chats')
-    return await getCachedChats()
+    const response = await polymindFetch('/webapp/sessions', {
+      method: 'GET',
+    })
+    
+    console.log(`[ChatsAPI] Response status: ${response.status} ${response.statusText}`)
+    
+    if (response.ok) {
+      const sessions = await response.json()
+      console.log(`[ChatsAPI] Received sessions:`, sessions)
+      
+      // Convert backend ChatSession format to frontend Chats format
+      const chats: Chats[] = sessions.map((session: unknown) => {
+        const s = session as Record<string, unknown>
+        return {
+          id: s.id as string,
+          title: s.title as string,
+          created_at: s.created_at as string,
+          updated_at: s.updated_at as string,
+          model: s.model as string,
+          user_id: s.user_id as string,
+          public: true,
+          pinned: (s.pinned as boolean) || false,
+          pinned_at: (s.pinned_at as string) || null,
+          project_id: null,
+        }
+      })
+      
+      // CRITICAL FIX: Always update cache with fresh data from backend
+      // This ensures cache is cleared when backend returns empty array
+      await writeToIndexedDB("chats", chats)
+      console.log(`[ChatsAPI] Updated IndexedDB cache with ${chats.length} sessions`)
+      
+      return chats
+    } else if (response.status === 401) {
+      console.error(`[ChatsAPI] Authentication failed - clearing cache`)
+      // Clear cache on auth failure
+      await writeToIndexedDB("chats", [])
+      return []
+    } else {
+      const errorText = await response.text()
+      console.error(`[ChatsAPI] Failed to fetch sessions: ${response.status} ${response.statusText}`)
+      console.error(`[ChatsAPI] Error response:`, errorText)
+    }
+  } catch (error) {
+    console.error('[ChatsAPI] Error fetching chats from MongoDB backend:', error)
   }
-
-  const data = await getChatsForUserInDb(userId)
-
-  if (data.length > 0) {
-    await writeToIndexedDB("chats", data)
-  }
-
-  return data
+  
+  // Fallback to cached chats if backend fails
+  console.log('[ChatsAPI] Falling back to cached chats')
+  return await getCachedChats()
 }
 
 export async function getCachedChats(): Promise<Chats[]> {
@@ -181,7 +102,7 @@ export async function updateChatTitle(
   id: string,
   title: string
 ): Promise<void> {
-  await updateChatTitleInDb(id, title)
+  // Update only in cache - backend updates happen through /webapp/chat endpoint
   const all = await getCachedChats()
   const updated = (all as Chats[]).map((c) =>
     c.id === id ? { ...c, title } : c
@@ -190,7 +111,7 @@ export async function updateChatTitle(
 }
 
 export async function deleteChat(id: string): Promise<void> {
-  await deleteChatInDb(id)
+  // Delete from cache - backend deletion handled separately
   const all = await getCachedChats()
   await writeToIndexedDB(
     "chats",
@@ -203,11 +124,9 @@ export async function getChat(chatId: string): Promise<Chat | null> {
   return (all as Chat[]).find((c) => c.id === chatId) || null
 }
 
-export async function getUserChats(userId: string): Promise<Chat[]> {
-  const data = await getAllUserChatsInDb(userId)
-  if (!data) return []
-  await writeToIndexedDB("chats", data)
-  return data
+export async function getUserChats(): Promise<Chat[]> {
+  // Return cached chats - use fetchAndCacheChats to refresh from backend
+  return await getCachedChats()
 }
 
 export async function createChat(
@@ -216,8 +135,9 @@ export async function createChat(
   model: string,
   systemPrompt: string
 ): Promise<string> {
-  const id = await createChatInDb(userId, title, model, systemPrompt)
-  const finalId = id ?? crypto.randomUUID()
+  // Generate new chat ID and save to cache
+  // Backend will create conversation on first message
+  const finalId = crypto.randomUUID()
 
   await writeToIndexedDB("chats", {
     id: finalId,

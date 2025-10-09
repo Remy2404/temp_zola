@@ -1,45 +1,10 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { signInWithGoogle } from "@/lib/api"
-import { createClient } from "@/lib/supabase/client"
-import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
 import { HeaderGoBack } from "../components/header-go-back"
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleSignInWithGoogle() {
-    const supabase = createClient()
-
-    if (!supabase) {
-      throw new Error("Supabase is not configured")
-    }
-
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const data = await signInWithGoogle(supabase)
-
-      // Redirect to the provider URL
-      if (data?.url) {
-        window.location.href = data.url
-      }
-    } catch (err: unknown) {
-      console.error("Error signing in with Google:", err)
-      setError(
-        (err as Error).message ||
-          "An unexpected error occurred. Please try again."
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="bg-background flex h-dvh w-full flex-col">
       <HeaderGoBack href="/" />
@@ -48,35 +13,25 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
             <h1 className="text-foreground text-3xl font-medium tracking-tight sm:text-4xl">
-              Welcome to Zola
+              Welcome to polymind
             </h1>
             <p className="text-muted-foreground mt-3">
-              Sign in below to increase your message limits.
+              This application requires Telegram authentication.
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Please access this app through Telegram to use all features.
             </p>
           </div>
-          {error && (
-            <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-              {error}
-            </div>
-          )}
           <div className="mt-8">
             <Button
               variant="secondary"
               className="w-full text-base sm:text-base"
               size="lg"
-              onClick={handleSignInWithGoogle}
-              disabled={isLoading}
+              asChild
             >
-              <img
-                src="https://www.google.com/favicon.ico"
-                alt="Google logo"
-                width={20}
-                height={20}
-                className="mr-2 size-4"
-              />
-              <span>
-                {isLoading ? "Connecting..." : "Continue with Google"}
-              </span>
+              <Link href="/">
+                Return to Home
+              </Link>
             </Button>
           </div>
         </div>

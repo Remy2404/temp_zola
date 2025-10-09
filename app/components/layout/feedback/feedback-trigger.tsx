@@ -12,8 +12,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
 import { Question } from "@phosphor-icons/react"
 import { useState } from "react"
 
@@ -21,10 +21,6 @@ export function FeedbackTrigger() {
   const { user } = useUser()
   const isMobile = useBreakpoint(768)
   const [isOpen, setIsOpen] = useState(false)
-
-  if (!isSupabaseEnabled) {
-    return null
-  }
 
   const handleClose = () => {
     setIsOpen(false)
@@ -43,7 +39,7 @@ export function FeedbackTrigger() {
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
           <DrawerTrigger asChild>{trigger}</DrawerTrigger>
           <DrawerContent className="bg-background border-border">
-            <FeedbackForm authUserId={user?.id} onClose={handleClose} />
+            <FeedbackForm authUserId={user?.id?.toString()} onClose={handleClose} />
           </DrawerContent>
         </Drawer>
       </>
@@ -55,11 +51,11 @@ export function FeedbackTrigger() {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>{trigger}</DialogTrigger>
         <DialogContent className="[&>button:last-child]:bg-background overflow-hidden p-0 shadow-xs sm:max-w-md [&>button:last-child]:top-3.5 [&>button:last-child]:right-3 [&>button:last-child]:rounded-full [&>button:last-child]:p-1">
-          <DialogHeader className="sr-only">
+          <VisuallyHidden>
             <DialogTitle>Send Feedback</DialogTitle>
             <DialogDescription>Share your thoughts and help us improve.</DialogDescription>
-          </DialogHeader>
-          <FeedbackForm authUserId={user?.id} onClose={handleClose} />
+          </VisuallyHidden>
+          <FeedbackForm authUserId={user?.id?.toString()} onClose={handleClose} />
         </DialogContent>
       </Dialog>
     </>

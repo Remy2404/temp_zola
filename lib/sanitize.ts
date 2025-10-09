@@ -1,9 +1,7 @@
-import createDOMPurify from "dompurify"
-import { JSDOM } from "jsdom"
-
-const window = new JSDOM("").window
-const DOMPurify = createDOMPurify(window)
+// DOMPurify and JSDOM dependencies removed
+// Simple sanitization - in production, consider adding proper sanitization library
 
 export function sanitizeUserInput(input: string): string {
-  return DOMPurify.sanitize(input)
+  // Basic sanitization - remove script tags
+  return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
 }

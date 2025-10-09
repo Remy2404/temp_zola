@@ -86,8 +86,8 @@ export function MultiChat() {
 
   const modelChats = useMultiChat(allModelsToMaintain)
   const systemPrompt = useMemo(
-    () => user?.system_prompt || SYSTEM_PROMPT_DEFAULT,
-    [user?.system_prompt]
+    () => SYSTEM_PROMPT_DEFAULT,
+    []
   )
   const isAuthenticated = useMemo(() => !!user?.id, [user?.id])
 

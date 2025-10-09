@@ -1,11 +1,7 @@
-import { isSupabaseEnabled } from "@/lib/supabase/config"
-import { notFound } from "next/navigation"
-import LoginPage from "./login-page"
+import { redirect } from "next/navigation"
 
 export default function AuthPage() {
-  if (!isSupabaseEnabled) {
-    return notFound()
-  }
-
-  return <LoginPage />
+  // Since Supabase has been removed and we use Telegram authentication,
+  // redirect to main page
+  redirect("/")
 }

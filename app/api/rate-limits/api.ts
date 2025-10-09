@@ -9,31 +9,17 @@ export async function getMessageUsage(
   userId: string,
   isAuthenticated: boolean
 ) {
-  const supabase = await validateUserIdentity(userId, isAuthenticated)
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from("users")
-    .select("daily_message_count, daily_pro_message_count")
-    .eq("id", userId)
-    .maybeSingle()
-
-  if (error || !data) {
-    throw new Error(error?.message || "Failed to fetch message usage")
-  }
-
+  // Since Supabase has been removed, usage tracking is handled by backend API
+  // Return default values for compatibility
   const dailyLimit = isAuthenticated
     ? AUTH_DAILY_MESSAGE_LIMIT
     : NON_AUTH_DAILY_MESSAGE_LIMIT
 
-  const dailyCount = data.daily_message_count || 0
-  const dailyProCount = data.daily_pro_message_count || 0
-
   return {
-    dailyCount,
-    dailyProCount,
+    dailyCount: 0,
+    dailyProCount: 0,
     dailyLimit,
-    remaining: dailyLimit - dailyCount,
-    remainingPro: DAILY_LIMIT_PRO_MODELS - dailyProCount,
+    remaining: dailyLimit,
+    remainingPro: DAILY_LIMIT_PRO_MODELS,
   }
 }

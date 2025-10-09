@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { DrawerClose } from "@/components/ui/drawer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
 import { cn } from "@/lib/utils"
 import {
   CubeIcon,
@@ -15,7 +14,6 @@ import { useState } from "react"
 import { InteractionPreferences } from "./appearance/interaction-preferences"
 import { LayoutSettings } from "./appearance/layout-settings"
 import { ThemeSelection } from "./appearance/theme-selection"
-import { AccountManagement } from "./general/account-management"
 import { UserProfile } from "./general/user-profile"
 import { ModelsSettings } from "./models/models-settings"
 
@@ -88,11 +86,6 @@ export function SettingsContent({
             {/* Mobile tabs content */}
             <TabsContent value="general" className="space-y-6 px-6">
               <UserProfile />
-              {isSupabaseEnabled && (
-                <>
-                  <AccountManagement />
-                </>
-              )}
             </TabsContent>
 
             <TabsContent value="appearance" className="space-y-6 px-6">
@@ -146,11 +139,6 @@ export function SettingsContent({
             <div className="flex-1 overflow-auto px-6 pt-4">
               <TabsContent value="general" className="mt-0 space-y-6">
                 <UserProfile />
-                {isSupabaseEnabled && (
-                  <>
-                    <AccountManagement />
-                  </>
-                )}
               </TabsContent>
 
               <TabsContent value="appearance" className="mt-0 space-y-6">

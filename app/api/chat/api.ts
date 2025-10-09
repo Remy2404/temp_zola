@@ -3,7 +3,6 @@ import type {
   ChatApiParams,
   LogUserMessageParams,
   StoreAssistantMessageParams,
-  SupabaseClientType,
 } from "@/app/types/api.types"
 import { FREE_MODELS_IDS, NON_AUTH_ALLOWED_MODELS } from "@/lib/config"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
@@ -16,9 +15,10 @@ export async function validateAndTrackUsage({
   userId,
   model,
   isAuthenticated,
-}: ChatApiParams): Promise<SupabaseClientType | null> {
-  const supabase = await validateUserIdentity(userId, isAuthenticated)
-  if (!supabase) return null
+}: ChatApiParams): Promise<boolean> {
+  // Since Supabase has been removed, usage validation is simplified
+  await checkUsageByModel(userId, model, isAuthenticated)
+  return true
 
   // Check if user is authenticated
   if (!isAuthenticated) {
@@ -48,22 +48,18 @@ export async function validateAndTrackUsage({
   }
 
   // Check usage limits for the model
-  await checkUsageByModel(supabase, userId, model, isAuthenticated)
+  await checkUsageByModel(userId, model, isAuthenticated)
 
-  return supabase
+  return true
 }
 
 export async function incrementMessageCount({
-  supabase,
   userId,
 }: {
-  supabase: SupabaseClientType
   userId: string
 }): Promise<void> {
-  if (!supabase) return
-
   try {
-    await incrementUsage(supabase, userId)
+    await incrementUsage(userId)
   } catch (err) {
     console.error("Failed to increment message count:", err)
     // Don't throw error as this shouldn't block the chat
@@ -71,7 +67,6 @@ export async function incrementMessageCount({
 }
 
 export async function logUserMessage({
-  supabase,
   userId,
   chatId,
   content,
@@ -79,40 +74,17 @@ export async function logUserMessage({
   model,
   isAuthenticated,
   message_group_id,
-}: LogUserMessageParams): Promise<void> {
-  if (!supabase) return
-
-  const { error } = await supabase.from("messages").insert({
-    chat_id: chatId,
-    role: "user",
-    content: sanitizeUserInput(content),
-    experimental_attachments: attachments,
-    user_id: userId,
-    message_group_id,
-  })
-
-  if (error) {
-    console.error("Error saving user message:", error)
-  }
+}: Omit<LogUserMessageParams, 'supabase'>): Promise<void> {
+  // Since Supabase has been removed, message logging is handled by backend API
+  // This is now a no-op
 }
 
 export async function storeAssistantMessage({
-  supabase,
   chatId,
   messages,
   message_group_id,
   model,
-}: StoreAssistantMessageParams): Promise<void> {
-  if (!supabase) return
-  try {
-    await saveFinalAssistantMessage(
-      supabase,
-      chatId,
-      messages,
-      message_group_id,
-      model
-    )
-  } catch (err) {
-    console.error("Failed to save assistant messages:", err)
-  }
+}: Omit<StoreAssistantMessageParams, 'supabase'>): Promise<void> {
+  // Since Supabase has been removed, message storage is handled by backend API
+  // This is now a no-op
 }

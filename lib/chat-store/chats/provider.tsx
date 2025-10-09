@@ -75,7 +75,7 @@ export function ChatsProvider({
       try {
         console.log('[ChatsProvider] Fetching fresh chats from backend...')
         // Try to fetch fresh data from backend
-        const fresh = await fetchAndCacheChats(userId)
+        const fresh = await fetchAndCacheChats()
         setChats(fresh)
         
         // If we got fresh data, log success
@@ -105,7 +105,7 @@ export function ChatsProvider({
   const refresh = async () => {
     if (!userId) return
 
-    const fresh = await fetchAndCacheChats(userId)
+    const fresh = await fetchAndCacheChats()
     setChats(fresh)
   }
 

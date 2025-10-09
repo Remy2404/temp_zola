@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { cn } from "@/lib/utils"
 import { MagnifyingGlass } from "@phosphor-icons/react"
 import { Command as CommandPrimitive } from "cmdk"
@@ -40,10 +41,10 @@ function CommandDialog({
   return (
     <Dialog {...props}>
       <DialogContent className="overflow-hidden border-none p-0 sm:max-w-3xl">
-        <DialogHeader className="sr-only">
+        <VisuallyHidden>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+        </VisuallyHidden>
         <Command className="[&_[cmdk-group-heading]]:text-muted-foreground border-none **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-item]_svg]:border-none">
           {children}
         </Command>

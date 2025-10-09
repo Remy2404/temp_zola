@@ -215,7 +215,7 @@ export function ProjectView({ projectId }: ProjectViewProps) {
     setFiles([])
 
     try {
-      const currentChatId = await ensureChatExists(user.id)
+      const currentChatId = await ensureChatExists(user.id.toString())
       if (!currentChatId) {
         setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
         cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
@@ -234,7 +234,7 @@ export function ProjectView({ projectId }: ProjectViewProps) {
 
       let attachments: Attachment[] | null = []
       if (submittedFiles.length > 0) {
-        attachments = await handleFileUploads(user.id, currentChatId)
+        attachments = await handleFileUploads(user.id.toString(), currentChatId)
         if (attachments === null) {
           setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
           cleanupOptimisticAttachments(

@@ -1,9 +1,5 @@
 import { toast } from "@/components/ui/toast"
-import { SupabaseClient } from "@supabase/supabase-js"
-import * as fileType from "file-type"
 import { DAILY_FILE_UPLOAD_LIMIT } from "./config"
-import { createClient } from "./supabase/client"
-import { isSupabaseEnabled } from "./supabase/config"
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -36,15 +32,10 @@ export async function validateFile(
     }
   }
 
-  const buffer = await file.arrayBuffer()
-  const type = await fileType.fileTypeFromBuffer(
-    Buffer.from(buffer.slice(0, 4100))
-  )
-
-  if (!type || !ALLOWED_FILE_TYPES.includes(type.mime)) {
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
     return {
       isValid: false,
-      error: "File type not supported or doesn't match its extension",
+      error: "File type not supported",
     }
   }
 
@@ -52,26 +43,10 @@ export async function validateFile(
 }
 
 export async function uploadFile(
-  supabase: SupabaseClient,
   file: File
 ): Promise<string> {
-  const fileExt = file.name.split(".").pop()
-  const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
-  const filePath = `uploads/${fileName}`
-
-  const { error } = await supabase.storage
-    .from("chat-attachments")
-    .upload(filePath, file)
-
-  if (error) {
-    throw new Error(`Error uploading file: ${error.message}`)
-  }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("chat-attachments").getPublicUrl(filePath)
-
-  return publicUrl
+  // Since Supabase has been removed, create a local object URL for the file
+  return URL.createObjectURL(file)
 }
 
 export function createAttachment(file: File, url: string): Attachment {
@@ -87,7 +62,6 @@ export async function processFiles(
   chatId: string,
   userId: string
 ): Promise<Attachment[]> {
-  const supabase = isSupabaseEnabled ? createClient() : null
   const attachments: Attachment[] = []
 
   for (const file of files) {
@@ -103,24 +77,7 @@ export async function processFiles(
     }
 
     try {
-      const url = supabase
-        ? await uploadFile(supabase, file)
-        : URL.createObjectURL(file)
-
-      if (supabase) {
-        const { error } = await supabase.from("chat_attachments").insert({
-          chat_id: chatId,
-          user_id: userId,
-          file_url: url,
-          file_name: file.name,
-          file_type: file.type,
-          file_size: file.size,
-        })
-
-        if (error) {
-          throw new Error(`Database insertion failed: ${error.message}`)
-        }
-      }
+      const url = await uploadFile(file)
 
       attachments.push(createAttachment(file, url))
     } catch (error) {
@@ -140,33 +97,7 @@ export class FileUploadLimitError extends Error {
 }
 
 export async function checkFileUploadLimit(userId: string) {
-  if (!isSupabaseEnabled) return 0
-
-  const supabase = createClient()
-
-  if (!supabase) {
-    toast({
-      title: "File upload is not supported in this deployment",
-      status: "info",
-    })
-    return 0
-  }
-
-  const now = new Date()
-  const startOfToday = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  )
-
-  const { count, error } = await supabase
-    .from("chat_attachments")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", startOfToday.toISOString())
-
-  if (error) throw new Error(error.message)
-  if (count && count >= DAILY_FILE_UPLOAD_LIMIT) {
-    throw new FileUploadLimitError("Daily file upload limit reached.")
-  }
-
-  return count
+  // Since Supabase has been removed, file upload limits are not enforced
+  // Files are handled locally via object URLs
+  return 0
 }
