@@ -58,16 +58,42 @@ export function ChatsProvider({
   const [chats, setChats] = useState<Chats[]>([])
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId) {
+      console.warn('[ChatsProvider] No userId provided - skipping chat fetch')
+      setIsLoading(false)
+      return
+    }
+
+    console.log(`[ChatsProvider] Initializing for userId: ${userId}`)
 
     const load = async () => {
       setIsLoading(true)
       const cached = await getCachedChats()
+      console.log(`[ChatsProvider] Loaded ${cached.length} chats from cache`)
       setChats(cached)
 
       try {
+        console.log('[ChatsProvider] Fetching fresh chats from backend...')
+        // Try to fetch fresh data from backend
         const fresh = await fetchAndCacheChats(userId)
         setChats(fresh)
+        
+        // If we got fresh data, log success
+        if (fresh.length > 0) {
+          console.log(`[ChatsProvider] ✅ Loaded ${fresh.length} chats from backend`)
+        } else if (cached.length > 0) {
+          // We had cached data but backend returned empty - this might be an issue
+          console.warn('[ChatsProvider] ⚠️ Backend returned empty but cache had data - keeping cache')
+          setChats(cached)
+        } else {
+          console.log('[ChatsProvider] No chats found (empty backend + empty cache)')
+        }
+      } catch (error) {
+        console.error('[ChatsProvider] ❌ Failed to fetch chats:', error)
+        // Keep cached data on error
+        if (cached.length > 0) {
+          console.log('[ChatsProvider] Using cached data due to fetch error')
+        }
       } finally {
         setIsLoading(false)
       }

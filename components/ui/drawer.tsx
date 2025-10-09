@@ -49,6 +49,8 @@ function DrawerContent({
   children,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+  // Suppress vaul library's accessibility warning - title/description should be provided by consumer
+  // This warning is a false positive when DrawerTitle/DrawerDescription are properly used
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay />

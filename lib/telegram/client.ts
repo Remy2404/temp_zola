@@ -15,11 +15,12 @@ class TelegramWebAppClient {
    */
   init(): boolean {
     if (typeof window === 'undefined') {
+      console.log('[Telegram WebApp] Skipping init - running on server')
       return false
     }
 
     if (!window.Telegram?.WebApp) {
-      console.warn('Telegram WebApp SDK not loaded')
+      console.warn('[Telegram WebApp] ⚠️ SDK not loaded - not running in Telegram')
       return false
     }
 
@@ -28,10 +29,14 @@ class TelegramWebAppClient {
     this.webapp.expand()
     this.initialized = true
 
-    console.log('[Telegram WebApp] Initialized:', {
+    const user = this.getUser()
+    console.log('[Telegram WebApp] ✅ Initialized:', {
       version: this.webapp.version,
       platform: this.webapp.platform,
       colorScheme: this.webapp.colorScheme,
+      userId: user?.id || 'no user',
+      username: user?.username || 'no username',
+      hasInitData: !!this.webapp.initData,
     })
 
     return true

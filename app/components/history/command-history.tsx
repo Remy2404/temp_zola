@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils"
 import { Check, PencilSimple, TrashSimple, X } from "@phosphor-icons/react"
 import { Pin, PinOff } from "lucide-react"
 import { useRouter } from "next/navigation"
+import * as React from "react"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { ChatPreviewPanel } from "./chat-preview-panel"
 import { CommandFooter } from "./command-footer"
@@ -310,14 +311,20 @@ function CustomCommandDialog({
   open,
   ...props
 }: CustomCommandDialogProps) {
+  // Generate unique IDs for accessibility
+  const titleId = React.useId()
+  const descriptionId = React.useId()
+  
   return (
     <Dialog {...props} onOpenChange={onOpenChange} open={open}>
       <DialogContent
         className={cn("overflow-hidden border-none p-0", className)}
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
       >
         <DialogHeader className="sr-only">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle id={titleId}>{title}</DialogTitle>
+          <DialogDescription id={descriptionId}>{description}</DialogDescription>
         </DialogHeader>
         <Command className="[&_[cmdk-group-heading]]:text-muted-foreground border-none **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-item]_svg]:border-none">
           {children}

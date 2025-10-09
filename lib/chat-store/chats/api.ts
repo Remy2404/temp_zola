@@ -86,6 +86,32 @@ export async function fetchAndCacheChats(userId: string): Promise<Chats[]> {
     // Use MongoDB backend instead of Supabase
     try {
       console.log('[ChatsAPI] Fetching sessions from MongoDB backend...')
+      
+      // CRITICAL FIX: Wait for Telegram to initialize before making authenticated requests
+      const { telegramWebApp } = await import('@/lib/telegram/client')
+      if (!telegramWebApp.isInitialized()) {
+        console.log('[ChatsAPI] Waiting for Telegram initialization...')
+        const initPromise = new Promise<boolean>((resolve) => {
+          const checkInit = () => {
+            if (telegramWebApp.isInitialized()) {
+              resolve(true)
+            } else {
+              setTimeout(checkInit, 100)
+            }
+          }
+          checkInit()
+          // Timeout after 5 seconds
+          setTimeout(() => resolve(false), 5000)
+        })
+        
+        const initialized = await initPromise
+        if (!initialized) {
+          console.warn('[ChatsAPI] Telegram initialization timeout - cannot fetch sessions without auth')
+          // Return cached data if available
+          return await getCachedChats()
+        }
+      }
+      
       const response = await polymindFetch('/webapp/sessions', {
         method: 'GET',
       })
@@ -110,12 +136,17 @@ export async function fetchAndCacheChats(userId: string): Promise<Chats[]> {
           project_id: null,
         }))
         
-        if (chats.length > 0) {
-          await writeToIndexedDB("chats", chats)
-        }
+        // CRITICAL FIX: Always update cache with fresh data from backend
+        // This ensures cache is cleared when backend returns empty array
+        await writeToIndexedDB("chats", chats)
+        console.log(`[ChatsAPI] Updated IndexedDB cache with ${chats.length} sessions`)
         
-        console.log(`[ChatsAPI] Fetched ${chats.length} sessions from MongoDB backend`)
         return chats
+      } else if (response.status === 401) {
+        console.error(`[ChatsAPI] Authentication failed - clearing cache`)
+        // Clear cache on auth failure
+        await writeToIndexedDB("chats", [])
+        return []
       } else {
         const errorText = await response.text()
         console.error(`[ChatsAPI] Failed to fetch sessions: ${response.status} ${response.statusText}`)
