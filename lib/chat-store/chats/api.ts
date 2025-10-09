@@ -47,11 +47,13 @@ export async function fetchAndCacheChats(): Promise<Chats[]> {
     
     if (response.ok) {
       const sessions = await response.json()
-      console.log(`[ChatsAPI] Received sessions:`, sessions)
-      
+      console.log(`[ChatsAPI] Received ${sessions.length} sessions from backend`)
+      console.log(`[ChatsAPI] First session sample:`, sessions[0])
+
       // Convert backend ChatSession format to frontend Chats format
-      const chats: Chats[] = sessions.map((session: unknown) => {
+      const backendChats: Chats[] = sessions.map((session: unknown) => {
         const s = session as Record<string, unknown>
+        console.log(`[ChatsAPI] Mapping session:`, s)
         return {
           id: s.id as string,
           title: s.title as string,
@@ -65,18 +67,41 @@ export async function fetchAndCacheChats(): Promise<Chats[]> {
           project_id: null,
         }
       })
-      
-      // CRITICAL FIX: Always update cache with fresh data from backend
-      // This ensures cache is cleared when backend returns empty array
-      await writeToIndexedDB("chats", chats)
-      console.log(`[ChatsAPI] Updated IndexedDB cache with ${chats.length} sessions`)
-      
-      return chats
+
+      console.log(`[ChatsAPI] Converted to ${backendChats.length} backend chats`)
+      console.log(`[ChatsAPI] First converted chat:`, backendChats[0])
+
+      // Merge backend results with local cache so optimistic/local-only chats are preserved
+      try {
+        const cached = await getCachedChats()
+
+        // Build map of chats; backend overrides cached entries with same id
+        const mergedMap = new Map<string, Chats>()
+        // First add cached
+        cached.forEach((c) => mergedMap.set(c.id, c))
+        // Then add/override with backend
+        backendChats.forEach((c) => mergedMap.set(c.id, c))
+
+        const merged = Array.from(mergedMap.values()).sort(
+          (a, b) => +new Date(b.created_at || "") - +new Date(a.created_at || "")
+        )
+
+        await writeToIndexedDB("chats", merged)
+        console.log(`[ChatsAPI] Merged and updated IndexedDB cache with ${merged.length} sessions (backend: ${backendChats.length}, cached: ${cached.length})`)
+
+        return merged
+      } catch (err) {
+        // If merging fails for any reason, fall back to writing backend-only data
+        await writeToIndexedDB("chats", backendChats)
+        console.log(`[ChatsAPI] Updated IndexedDB cache with ${backendChats.length} backend sessions (merge fallback)`)
+        return backendChats
+      }
     } else if (response.status === 401) {
-      console.error(`[ChatsAPI] Authentication failed - clearing cache`)
-      // Clear cache on auth failure
-      await writeToIndexedDB("chats", [])
-      return []
+      // Authentication failed. Do NOT clear local cache here because that can
+      // erase optimistic or recently-created chats that exist locally but
+      // aren't yet visible to the backend (transient auth timing issues).
+      console.error(`[ChatsAPI] Authentication failed - returning cached chats`)
+      return await getCachedChats()
     } else {
       const errorText = await response.text()
       console.error(`[ChatsAPI] Failed to fetch sessions: ${response.status} ${response.statusText}`)
@@ -215,6 +240,15 @@ export async function createNewChat(
   projectId?: string
 ): Promise<Chats> {
   try {
+    // For Telegram webapp users, use cache_key format to match backend
+    // This eliminates UUID mismatch and enables direct message fetching
+    const isTelegramUser = isAuthenticated === true
+    const chatId = isTelegramUser && model
+      ? `user_${userId}_model_${model}`
+      : crypto.randomUUID()
+
+    console.log(`[ChatsAPI] Creating new chat with ID: ${chatId} (Telegram: ${isTelegramUser}, model: ${model})`)
+
     const payload: {
       userId: string
       title: string
@@ -244,8 +278,9 @@ export async function createNewChat(
       throw new Error(responseData.error || "Failed to create chat")
     }
 
+    // Override the backend-generated ID with our cache_key format for Telegram users
     const chat: Chats = {
-      id: responseData.chat.id,
+      id: isTelegramUser && model ? chatId : responseData.chat.id,
       title: responseData.chat.title,
       created_at: responseData.chat.created_at,
       model: responseData.chat.model,
@@ -257,8 +292,43 @@ export async function createNewChat(
       pinned_at: responseData.chat.pinned_at ?? null,
     }
 
-    await writeToIndexedDB("chats", chat)
-    return chat
+    // Merge the new backend chat with any cached chats. Remove any
+    // optimistic entries that match the same title+user (best effort)
+    try {
+      const cached = await getCachedChats()
+
+      // Remove optimistic entries by heuristic: ids starting with 'optimistic-'
+      // or entries that have same title and user_id but different id.
+      const filtered = cached.filter((c) => {
+        if (c.id && String(c.id).startsWith("optimistic-")) return false
+        if (c.title === chat.title && c.user_id === chat.user_id && c.id !== chat.id) return false
+        return true
+      })
+
+      const mergedMap = new Map<string, Chats>()
+      filtered.forEach((c) => mergedMap.set(c.id, c))
+      mergedMap.set(chat.id, chat)
+
+      const merged = Array.from(mergedMap.values()).sort(
+        (a, b) => +new Date(b.created_at || "") - +new Date(a.created_at || "")
+      )
+
+      await writeToIndexedDB("chats", merged)
+
+      // Ensure there's an initialized messages entry for this chat so the
+      // MessagesProvider can read an empty array (avoids transient empty state)
+      try {
+        await writeToIndexedDB("messages", { id: chat.id, messages: [] })
+      } catch (err) {
+        console.warn('[ChatsAPI] Failed to initialize messages entry for chat', chat.id, err)
+      }
+
+      return chat
+    } catch (err) {
+      // On failure, fall back to writing single chat
+      await writeToIndexedDB("chats", chat)
+      return chat
+    }
   } catch (error) {
     console.error("Error creating new chat:", error)
     throw error

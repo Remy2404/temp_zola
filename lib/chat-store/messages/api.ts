@@ -1,12 +1,92 @@
 import type { Message as MessageAISDK } from "ai"
 import { readFromIndexedDB, writeToIndexedDB } from "../persist"
+import { polymindFetch } from "../../polymind/api"
+import type { Chat } from "../types"
 
 export async function getMessagesFromDb(
   chatId: string
 ): Promise<MessageAISDK[]> {
-  // Only use local cache since Supabase has been removed
+  // First check local cache
   const cached = await getCachedMessages(chatId)
-  return cached
+  
+  // If cache has messages, return them
+  if (cached.length > 0) {
+    console.log(`[MessagesAPI] Returning ${cached.length} cached messages for chatId=${chatId}`)
+    return cached
+  }
+  
+  // Cache is empty - try fetching from backend
+  try {
+    console.log(`[MessagesAPI] Cache empty, fetching messages from backend for chatId=${chatId}`)
+    
+    // For cache_key format IDs, we can fetch directly
+    // For UUID format IDs, we need the model parameter
+    let url = `/webapp/messages/${encodeURIComponent(chatId)}`
+    
+    // If chatId is not cache_key format, get the model from the chat
+    if (!chatId.startsWith('user_')) {
+      const chats = await readFromIndexedDB<Chat>("chats")
+      const chat = (chats as Chat[]).find((c) => c.id === chatId)
+      const model = chat?.model
+      
+      if (model) {
+        url = `${url}?model=${encodeURIComponent(model)}`
+        console.log(`[MessagesAPI] UUID format detected, adding model parameter: ${model}`)
+      }
+    } else {
+      console.log(`[MessagesAPI] Cache_key format detected, fetching directly`)
+    }
+    
+    // Wait for Telegram initialization (same pattern as chats API)
+    const { telegramWebApp } = await import('@/lib/telegram/client')
+    if (!telegramWebApp.isInitialized()) {
+      console.log('[MessagesAPI] Waiting for Telegram initialization...')
+      const initPromise = new Promise<boolean>((resolve) => {
+        const checkInit = () => {
+          if (telegramWebApp.isInitialized()) {
+            resolve(true)
+          } else {
+            setTimeout(checkInit, 100)
+          }
+        }
+        checkInit()
+        setTimeout(() => resolve(false), 5000)
+      })
+      
+      const initialized = await initPromise
+      if (!initialized) {
+        console.warn('[MessagesAPI] Telegram initialization timeout - returning empty messages')
+        return []
+      }
+    }
+    
+    const response = await polymindFetch(url, {
+      method: 'GET',
+    })
+    
+    if (response.ok) {
+      const messages = await response.json()
+      console.log(`[MessagesAPI] Fetched ${messages.length} messages from backend for chatId=${chatId}`)
+      
+      // Cache the fetched messages
+      if (messages.length > 0) {
+        await cacheMessages(chatId, messages)
+      }
+      
+      return messages
+    } else if (response.status === 403) {
+      console.error(`[MessagesAPI] Access denied for chatId=${chatId}`)
+      return []
+    } else {
+      const errorText = await response.text()
+      console.error(`[MessagesAPI] Failed to fetch messages: ${response.status} ${response.statusText}`)
+      console.error(`[MessagesAPI] Error response:`, errorText)
+      return []
+    }
+  } catch (error) {
+    console.error('[MessagesAPI] Error fetching messages from backend:', error)
+    return []
+  }
 }
 
 async function insertMessageToDb(chatId: string, message: MessageAISDK) {

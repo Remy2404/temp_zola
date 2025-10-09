@@ -51,12 +51,26 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     const load = async () => {
       setIsLoading(true)
       const cached = await getCachedMessages(chatId)
+      console.log(`[MessagesProvider] Loaded ${cached.length} messages from cache for chatId=${chatId}`)
       setMessages(cached)
 
+      // Ensure an IndexedDB entry exists for this chat to avoid the UI showing
+      // an empty conversation due to a missing record. It's safe to write an
+      // empty array if none exists.
+      if (cached.length === 0) {
+        try {
+          await writeToIndexedDB("messages", { id: chatId, messages: [] })
+          console.log(`[MessagesProvider] Initialized empty messages entry for chatId=${chatId}`)
+        } catch (err) {
+          console.error("Failed to initialize messages entry in IndexedDB:", err)
+        }
+      }
+
       try {
-        const fresh = await getMessagesFromDb(chatId)
-        setMessages(fresh)
-        cacheMessages(chatId, fresh)
+  const fresh = await getMessagesFromDb(chatId)
+  console.log(`[MessagesProvider] Fetched ${fresh.length} messages from DB for chatId=${chatId}`)
+  setMessages(fresh)
+  cacheMessages(chatId, fresh)
       } catch (error) {
         console.error("Failed to fetch messages:", error)
       } finally {

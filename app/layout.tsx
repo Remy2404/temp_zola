@@ -14,6 +14,7 @@ import { ThemeProvider } from "next-themes"
 import Script from "next/script"
 import { LayoutClient } from "./layout-client"
 import { TelegramMiniAppInit } from "./telegram-mini-app-init"
+import { ClientProviders } from "./client-providers"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,37 +50,17 @@ export default async function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
+        {/* ...existing code... */}
         <TanstackQueryProvider>
           <LayoutClient />
           <UserProvider initialUser={null}>
             <TelegramMiniAppInit />
-            <ModelProvider>
-              <ChatsProvider userId={undefined}>
-                <ChatSessionProvider>
-                  <UserPreferencesProvider
-                    userId={undefined}
-                    initialPreferences={undefined}
-                  >
-                    <TooltipProvider
-                      delayDuration={200}
-                      skipDelayDuration={500}
-                    >
-                      <ThemeProvider
-                        attribute="class"
-                        defaultTheme="light"
-                        enableSystem
-                        disableTransitionOnChange
-                      >
-                        <SidebarProvider defaultOpen>
-                          <Toaster position="top-center" />
-                          {children}
-                        </SidebarProvider>
-                      </ThemeProvider>
-                    </TooltipProvider>
-                  </UserPreferencesProvider>
-                </ChatSessionProvider>
-              </ChatsProvider>
-            </ModelProvider>
+            {/* ClientProviders reads the UserProvider client-side and
+                passes the resolved userId into ChatsProvider and
+                UserPreferencesProvider so they can fetch user-specific data. */}
+            <ClientProviders>
+              {children}
+            </ClientProviders>
           </UserProvider>
         </TanstackQueryProvider>
       </body>

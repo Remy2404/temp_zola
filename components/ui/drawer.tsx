@@ -49,6 +49,11 @@ function DrawerContent({
   children,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+  // Generate an id for the hidden description and prefer any consumer-provided aria-describedby
+  const descriptionId = React.useId()
+  const providedAriaDescribedBy = (props as any)["aria-describedby"]
+  const ariaDescribedBy = providedAriaDescribedBy ?? descriptionId
+
   // Suppress vaul library's accessibility warning - title/description should be provided by consumer
   // This warning is a false positive when DrawerTitle/DrawerDescription are properly used
   return (
@@ -56,6 +61,8 @@ function DrawerContent({
       <DrawerOverlay />
       <DrawerPrimitive.Content
         data-slot="drawer-content"
+        {...props}
+        aria-describedby={ariaDescribedBy}
         className={cn(
           "group/drawer-content bg-background fixed z-50 flex h-auto flex-col",
           "data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=top]:border-b",
@@ -64,7 +71,6 @@ function DrawerContent({
           "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
           className
         )}
-        {...props}
       >
         {/* Provide an always-present but visually-hidden Title to satisfy the underlying primitive's accessibility check.
             This keeps the UI the same while suppressing the dev-only console warning. Consumers can still pass
@@ -72,6 +78,15 @@ function DrawerContent({
         <DrawerPrimitive.Title className="sr-only" aria-hidden>
           Drawer
         </DrawerPrimitive.Title>
+
+        {/* Hidden description to satisfy aria-describedby when consumer doesn't provide one */}
+        <DrawerPrimitive.Description
+          id={descriptionId}
+          className="sr-only"
+          aria-hidden
+        >
+          Drawer content
+        </DrawerPrimitive.Description>
 
         <div className="bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
         {children}
