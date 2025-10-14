@@ -178,7 +178,7 @@ export function SidebarItem({ chat, currentChatId }: SidebarItemProps) {
       ) : (
         <>
           <Link
-            href={`/c/${chat.id}`}
+            href={`/c/${encodeURIComponent(chat.id)}`}
             className="block w-full"
             prefetch
             onClick={handleLinkClick}

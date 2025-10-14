@@ -201,8 +201,11 @@ export function Chat() {
 
   // Handle redirect for invalid chatId - only redirect if we're certain the chat doesn't exist
   // and we're not in a transient state during chat creation
+  // Don't redirect for cache_key format chatIds (they can load messages directly)
+  const isCacheKeyFormat = chatId?.startsWith('user_') && chatId?.includes('_model_')
   if (
     chatId &&
+    !isCacheKeyFormat &&
     !isChatsLoading &&
     !currentChat &&
     !isSubmitting &&

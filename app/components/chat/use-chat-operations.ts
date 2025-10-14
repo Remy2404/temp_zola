@@ -88,7 +88,7 @@ export function useChatOperations({
 
         if (!newChat) return null
         if (isAuthenticated) {
-          window.history.pushState(null, "", `/c/${newChat.id}`)
+          window.history.pushState(null, "", `/c/${encodeURIComponent(newChat.id)}`)
         } else {
           localStorage.setItem("guestChatId", newChat.id)
         }

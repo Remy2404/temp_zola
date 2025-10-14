@@ -28,12 +28,30 @@ export function useModel({
 }: UseModelProps) {
   const { models } = useModelStore()
   
-  // Calculate the effective model based on priority: chat model > first available model
+  // Calculate the effective model based on priority: chat model > cache_key model > first available model
   const getEffectiveModel = useCallback(() => {
+    // First priority: chat model
+    if (currentChat?.model) {
+      return currentChat.model
+    }
+    
+    // Second priority: extract model from cache_key format chatId
+    if (chatId?.startsWith('user_') && chatId?.includes('_model_')) {
+      try {
+        const modelPart = chatId.split('_model_')[1]
+        if (modelPart) {
+          return modelPart
+        }
+      } catch (err) {
+        console.warn('Failed to extract model from cache_key:', chatId, err)
+      }
+    }
+    
+    // Third priority: first available model
     const firstAvailableModel = models?.[0]?.id
     // Always return a valid model with ultimate fallback to gemini
-    return currentChat?.model || firstAvailableModel || "gemini/gemini-2.0-flash-exp"
-  }, [currentChat?.model, models])
+    return firstAvailableModel || "gemini/gemini-2.0-flash-exp"
+  }, [currentChat?.model, chatId, models])
 
   // Use local state only for temporary overrides, derive base value from props
   const [localSelectedModel, setLocalSelectedModel] = useState<string | null>(
