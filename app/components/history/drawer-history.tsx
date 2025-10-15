@@ -1,12 +1,6 @@
 import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import { Button } from "@/components/ui/button"
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle, DrawerDescription } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -18,10 +12,8 @@ import { useChats } from "@/lib/chat-store/chats/provider"
 import { Chats } from "@/lib/chat-store/types"
 import {
   Check,
-  DotsThreeVertical,
   MagnifyingGlass,
   PencilSimple,
-  Share,
   TrashSimple,
   X,
 } from "@phosphor-icons/react"
@@ -49,7 +41,7 @@ export function DrawerHistory({
   setIsOpen,
 }: DrawerHistoryProps) {
   const { pinnedChats, togglePinned } = useChats()
-  const isMobile = useBreakpoint(768)
+  const isSmallMobile = useBreakpoint(384)
   const [searchQuery, setSearchQuery] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState("")
@@ -101,25 +93,6 @@ export function DrawerHistory({
 
   const handleCancelDelete = useCallback(() => {
     setDeletingId(null)
-  }, [])
-
-  const handleShare = useCallback(async (chat: Chats) => {
-    // Share functionality - could copy link to clipboard or open share dialog
-    const url = `${window.location.origin}/c/${chat.id}`
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: chat.title || "Chat",
-          url: url,
-        })
-      } catch (error) {
-        // Fallback to clipboard if share fails
-        await navigator.clipboard.writeText(url)
-      }
-    } else {
-      // Fallback to clipboard for browsers without native share
-      await navigator.clipboard.writeText(url)
-    }
   }, [])
 
   // Memoize filtered chats to avoid recalculating on every render
@@ -234,7 +207,7 @@ export function DrawerHistory({
             </div>
           ) : (
             <div
-              className="group flex items-center justify-between rounded-lg px-2 py-1.5"
+              className="group flex items-center justify-between rounded-lg px-2 py-1.5 min-h-[44px]"
               onClick={() => {
                 if (params.chatId === chat.id) {
                   handleOpenChange(false)
@@ -244,79 +217,77 @@ export function DrawerHistory({
               <Link
                 href={`/c/${chat.id}`}
                 key={chat.id}
-                className="flex flex-1 flex-col items-start"
+                className={`flex flex-1 flex-col items-start min-w-0 pr-2 ${
+                  isSmallMobile ? "max-w-[calc(100%-120px)]" : "max-w-[calc(100%-140px)]"
+                }`}
                 prefetch
               >
-                <span className="line-clamp-1 text-base font-normal">
+                <span className={`w-full text-base font-normal truncate overflow-hidden text-ellipsis whitespace-nowrap ${
+                  isSmallMobile ? "max-w-[140px]" : "max-w-[200px]"
+                }`}>
                   {chat.title || "Untitled Chat"}
                 </span>
-                <span className="mr-2 text-xs font-normal text-gray-500">
+                <span className={`w-full text-xs font-normal text-gray-500 truncate overflow-hidden text-ellipsis whitespace-nowrap ${
+                  isSmallMobile ? "max-w-[140px]" : "max-w-[200px]"
+                }`}>
                   {formatDate(chat?.updated_at || chat?.created_at)}
                 </span>
               </Link>
-              <div className="flex items-center transition-all duration-300 ease-in-out">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-muted-foreground hover:text-foreground size-8"
-                      onClick={(e) => {
-                        e.preventDefault()
-                      }}
-                      type="button"
-                      aria-label="More options"
-                    >
-                      <DotsThreeVertical className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault()
-                        handleShare(chat)
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <Share className="size-4" />
-                      Share
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault()
-                        togglePinned(chat.id, !chat.pinned)
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      {chat.pinned ? (
-                        <PinOff className="size-4 stroke-[1.5px]" />
-                      ) : (
-                        <Pin className="size-4 stroke-[1.5px]" />
-                      )}
-                      {chat.pinned ? "Unpin" : "Pin"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault()
-                        handleEdit(chat)
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <PencilSimple className="size-4" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault()
-                        handleDelete(chat.id)
-                      }}
-                      className="flex items-center gap-2 text-destructive focus:text-destructive"
-                    >
-                      <TrashSimple className="size-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className={`flex items-center overflow-visible flex-shrink-0 ${
+                isSmallMobile ? "min-w-[100px]" : "min-w-[120px]"
+              }`}>
+                <div className={`flex gap-1 flex-shrink-0 ${isSmallMobile ? "gap-0.5" : "gap-1"}`}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`text-muted-foreground hover:text-foreground opacity-100 z-10 ${
+                      isSmallMobile ? "size-7" : "size-8"
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      togglePinned(chat.id, !chat.pinned)
+                    }}
+                    type="button"
+                    aria-label={chat.pinned ? "Unpin" : "Pin"}
+                  >
+                    {chat.pinned ? (
+                      <PinOff className="size-4 stroke-[1.5px]" />
+                    ) : (
+                      <Pin className="size-4 stroke-[1.5px]" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`text-muted-foreground hover:text-foreground opacity-100 z-10 ${
+                      isSmallMobile ? "size-7" : "size-8"
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleEdit(chat)
+                    }}
+                    type="button"
+                  >
+                    <PencilSimple className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`text-muted-foreground hover:text-destructive opacity-100 z-10 ${
+                      isSmallMobile ? "size-7" : "size-8"
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleDelete(chat.id)
+                    }}
+                    type="button"
+                  >
+                    <TrashSimple className="size-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -335,7 +306,6 @@ export function DrawerHistory({
       handleCancelDelete,
       handleEdit,
       handleDelete,
-      handleShare,
       togglePinned,
     ]
   )
@@ -349,6 +319,8 @@ export function DrawerHistory({
         <TooltipContent>History</TooltipContent>
       </Tooltip>
       <DrawerContent>
+        <DrawerTitle className="sr-only">Chat History</DrawerTitle>
+        <DrawerDescription className="sr-only">Browse and manage your chat history</DrawerDescription>
         <div className="flex h-dvh max-h-[80vh] flex-col">
           <div className="border-b p-4 pb-3">
             <div className="relative">
