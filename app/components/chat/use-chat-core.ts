@@ -112,10 +112,24 @@ export function useChatCore({
     api: API_ROUTE_CHAT,
     initialMessages,
     initialInput: draftValue,
-    onFinish: cacheAndAddMessage,
+    onFinish: (message) => {
+      // Cache the assistant's response
+      cacheAndAddMessage(message)
+    },
     onError: handleError,
     headers: getAuthHeaders(),
   })
+
+  // Sync messages back to MessagesProvider when they change
+  useEffect(() => {
+    if (messages.length > initialMessages.length) {
+      // Messages have been added by useChat, sync them to persistence
+      const newMessages = messages.slice(initialMessages.length)
+      for (const message of newMessages) {
+        cacheAndAddMessage(message)
+      }
+    }
+  }, [messages, initialMessages, cacheAndAddMessage])
 
   // Handle search params on mount
   useEffect(() => {
@@ -144,21 +158,11 @@ export function useChatCore({
       return
     }
 
-    const optimisticId = `optimistic-${Date.now().toString()}`
-    const optimisticAttachments =
-      files.length > 0 ? createOptimisticAttachments(files) : []
-
-    const optimisticMessage = {
-      id: optimisticId,
-      content: input,
-      role: "user" as const,
-      createdAt: new Date(),
-      experimental_attachments:
-        optimisticAttachments.length > 0 ? optimisticAttachments : undefined,
+    const currentInput = input.trim()
+    if (!currentInput) {
+      setIsSubmitting(false)
+      return
     }
-
-    setMessages((prev) => [...prev, optimisticMessage])
-    setInput("")
 
     const submittedFiles = [...files]
     setFiles([])
@@ -166,25 +170,19 @@ export function useChatCore({
     try {
       const allowed = await checkLimitsAndNotify(uid)
       if (!allowed) {
-        setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
-        cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
         return
       }
 
-      const currentChatId = await ensureChatExists(uid, input)
+      const currentChatId = await ensureChatExists(uid, currentInput)
       if (!currentChatId) {
-        setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
-        cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
         return
       }
 
-      if (input.length > MESSAGE_MAX_LENGTH) {
+      if (currentInput.length > MESSAGE_MAX_LENGTH) {
         toast({
           title: `The message you submitted was too long, please submit something shorter. (Max ${MESSAGE_MAX_LENGTH} characters)`,
           status: "error",
         })
-        setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
-        cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
         return
       }
 
@@ -192,10 +190,6 @@ export function useChatCore({
       if (submittedFiles.length > 0) {
         attachments = await handleFileUploads(uid, currentChatId)
         if (attachments === null) {
-          setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
-          cleanupOptimisticAttachments(
-            optimisticMessage.experimental_attachments
-          )
           return
         }
       }
@@ -212,32 +206,21 @@ export function useChatCore({
         experimental_attachments: attachments || undefined,
       }
 
-      handleSubmit(undefined, options)
-      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
-      cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
-      cacheAndAddMessage(optimisticMessage)
+      // Let AI SDK handle the message submission naturally
+      await handleSubmit(undefined, options)
       clearDraft()
-
-      if (messages.length > 0) {
-        bumpChat(currentChatId)
-      }
-    } catch {
-      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
-      cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
+    } catch (error) {
+      console.error("Submit error:", error)
       toast({ title: "Failed to send message", status: "error" })
     } finally {
       setIsSubmitting(false)
     }
   }, [
     user,
-    files,
-    createOptimisticAttachments,
     input,
-    setMessages,
-    setInput,
+    files,
     setFiles,
     checkLimitsAndNotify,
-    cleanupOptimisticAttachments,
     ensureChatExists,
     handleFileUploads,
     selectedModel,
@@ -245,7 +228,6 @@ export function useChatCore({
     systemPrompt,
     enableSearch,
     handleSubmit,
-    cacheAndAddMessage,
     clearDraft,
     messages.length,
     bumpChat,

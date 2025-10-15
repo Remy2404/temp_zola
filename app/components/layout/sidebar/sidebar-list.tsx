@@ -15,6 +15,11 @@ export function SidebarList({
   items,
   currentChatId,
 }: SidebarListProps) {
+  // Deduplicate items to prevent React duplicate key errors
+  const deduplicatedItems = items.filter((chat, index, self) => 
+    index === self.findIndex(c => c.id === chat.id)
+  )
+
   return (
     <div>
       <h3 className="flex items-center gap-1 overflow-hidden px-2 pt-3 pb-2 text-xs font-semibold break-all text-ellipsis">
@@ -22,9 +27,9 @@ export function SidebarList({
         {title}
       </h3>
       <div className="space-y-0.5">
-        {items.map((chat) => (
+        {deduplicatedItems.map((chat, index) => (
           <SidebarItem
-            key={chat.id}
+            key={`${chat.id}-sidebar-${index}`}
             chat={chat}
             currentChatId={currentChatId}
           />

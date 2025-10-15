@@ -22,26 +22,56 @@ type ChatRequest = {
 
 export async function POST(req: Request) {
   try {
+    const body = await req.json() as ChatRequest
     const {
       messages,
       chatId,
       userId,
       model,
       systemPrompt,
-    } = (await req.json()) as ChatRequest
+    } = body
 
-    if (!messages || !userId) {
+    // Enhanced validation with detailed error messages
+    if (!messages || !Array.isArray(messages)) {
       return new Response(
-        JSON.stringify({ error: "Error, missing information" }),
+        JSON.stringify({ error: "Messages array is required and must be an array" }),
+        { status: 400 }
+      )
+    }
+
+    if (!userId || typeof userId !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "Valid userId is required" }),
+        { status: 400 }
+      )
+    }
+
+    if (messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "At least one message is required" }),
         { status: 400 }
       )
     }
 
     const userMessage = messages[messages.length - 1]
     
-    if (!userMessage || userMessage.role !== "user") {
+    if (!userMessage) {
       return new Response(
-        JSON.stringify({ error: "Invalid message" }),
+        JSON.stringify({ error: "Last message is missing or invalid" }),
+        { status: 400 }
+      )
+    }
+
+    if (!userMessage.content || typeof userMessage.content !== 'string' || userMessage.content.trim() === '') {
+      return new Response(
+        JSON.stringify({ error: "Message content is required and cannot be empty" }),
+        { status: 400 }
+      )
+    }
+
+    if (userMessage.role !== "user") {
+      return new Response(
+        JSON.stringify({ error: `Invalid message role: expected 'user', got '${userMessage.role}'` }),
         { status: 400 }
       )
     }
