@@ -172,7 +172,8 @@ export function ChatInput({
         />
       )}
       <div
-        className="relative order-2 px-2 pb-3 sm:pb-4 md:order-1 safe-area-pb"
+        // Increased bottom padding to leave room for the model/send action bar
+        className="relative order-2 px-2 pb-20 sm:pb-24 md:order-1 safe-area-pb"
         onClick={() => textareaRef.current?.focus()}
       >
         <PromptInput
@@ -187,7 +188,8 @@ export function ChatInput({
             placeholder="Ask Polymind"
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className="min-h-[44px] pt-3 pl-4 pr-4 text-base leading-[1.3] sm:text-base md:text-base"
+            // Add extra bottom padding so text stays visible above the action bar
+            className="min-h-[44px] pt-3 pl-4 pr-4 pb-16 text-base leading-[1.3] sm:text-base md:text-base"
           />
           <PromptInputActions className="mt-3 w-full justify-between p-2 gap-2 prompt-input-actions">
             <div className="flex gap-2 flex-wrap">

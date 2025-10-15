@@ -1,6 +1,12 @@
 import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -12,8 +18,10 @@ import { useChats } from "@/lib/chat-store/chats/provider"
 import { Chats } from "@/lib/chat-store/types"
 import {
   Check,
+  DotsThreeVertical,
   MagnifyingGlass,
   PencilSimple,
+  Share,
   TrashSimple,
   X,
 } from "@phosphor-icons/react"
@@ -93,6 +101,25 @@ export function DrawerHistory({
 
   const handleCancelDelete = useCallback(() => {
     setDeletingId(null)
+  }, [])
+
+  const handleShare = useCallback(async (chat: Chats) => {
+    // Share functionality - could copy link to clipboard or open share dialog
+    const url = `${window.location.origin}/c/${chat.id}`
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: chat.title || "Chat",
+          url: url,
+        })
+      } catch (error) {
+        // Fallback to clipboard if share fails
+        await navigator.clipboard.writeText(url)
+      }
+    } else {
+      // Fallback to clipboard for browsers without native share
+      await navigator.clipboard.writeText(url)
+    }
   }, [])
 
   // Memoize filtered chats to avoid recalculating on every render
@@ -228,49 +255,68 @@ export function DrawerHistory({
                 </span>
               </Link>
               <div className="flex items-center transition-all duration-300 ease-in-out">
-                <div className="flex gap-1 history-buttons-container">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-muted-foreground hover:text-foreground size-8"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      togglePinned(chat.id, !chat.pinned)
-                    }}
-                    type="button"
-                    aria-label={chat.pinned ? "Unpin" : "Pin"}
-                  >
-                    {chat.pinned ? (
-                      <PinOff className="size-4 stroke-[1.5px]" />
-                    ) : (
-                      <Pin className="size-4 stroke-[1.5px]" />
-                    )}
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-muted-foreground hover:text-foreground size-8"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleEdit(chat)
-                    }}
-                    type="button"
-                  >
-                    <PencilSimple className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-muted-foreground hover:text-destructive size-8"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleDelete(chat.id)
-                    }}
-                    type="button"
-                  >
-                    <TrashSimple className="size-4" />
-                  </Button>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-muted-foreground hover:text-foreground size-8"
+                      onClick={(e) => {
+                        e.preventDefault()
+                      }}
+                      type="button"
+                      aria-label="More options"
+                    >
+                      <DotsThreeVertical className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleShare(chat)
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Share className="size-4" />
+                      Share
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault()
+                        togglePinned(chat.id, !chat.pinned)
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      {chat.pinned ? (
+                        <PinOff className="size-4 stroke-[1.5px]" />
+                      ) : (
+                        <Pin className="size-4 stroke-[1.5px]" />
+                      )}
+                      {chat.pinned ? "Unpin" : "Pin"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleEdit(chat)
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <PencilSimple className="size-4" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleDelete(chat.id)
+                      }}
+                      className="flex items-center gap-2 text-destructive focus:text-destructive"
+                    >
+                      <TrashSimple className="size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           )}
@@ -289,6 +335,7 @@ export function DrawerHistory({
       handleCancelDelete,
       handleEdit,
       handleDelete,
+      handleShare,
       togglePinned,
     ]
   )
