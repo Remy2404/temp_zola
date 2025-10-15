@@ -88,6 +88,11 @@ export async function* streamChatResponse(params: {
   include_context?: boolean
   max_context_messages?: number
   chat_id?: string
+  attachments?: Array<{
+    name: string
+    contentType: string
+    data: string // base64 encoded
+  }>
 }): AsyncGenerator<{
   type: 'start' | 'content' | 'done' | 'error'
   content?: string
@@ -103,6 +108,7 @@ export async function* streamChatResponse(params: {
       include_context: params.include_context ?? true,
       max_context_messages: params.max_context_messages ?? 10,
       chat_id: params.chat_id,
+      attachments: params.attachments,
     }),
   })
 

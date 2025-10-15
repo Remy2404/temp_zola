@@ -69,13 +69,34 @@ export function useChatCore({
   const searchParams = useSearchParams()
   const prompt = searchParams.get("prompt")
 
-  // Handle errors directly in onError callback
-  const handleError = useCallback((error: Error) => {
+  // Handle errors directly in onError callback with better error safety
+  const handleError = useCallback((error: Error | any) => {
     console.error("Chat error:", error)
-    console.error("Error message:", error.message)
-    let errorMsg = error.message || "Something went wrong."
-
-    if (errorMsg === "An error occurred" || errorMsg === "fetch failed") {
+    
+    // Safely extract error message
+    let errorMsg = "Something went wrong. Please try again."
+    
+    try {
+      if (error && typeof error === 'object') {
+        if (error.message && typeof error.message === 'string') {
+          errorMsg = error.message
+        } else if (error.error && typeof error.error === 'string') {
+          errorMsg = error.error
+        } else if (typeof error === 'string') {
+          errorMsg = error
+        }
+      } else if (typeof error === 'string') {
+        errorMsg = error
+      }
+      
+      console.error("Processed error message:", errorMsg)
+      
+      // Clean up generic error messages
+      if (errorMsg === "An error occurred" || errorMsg === "fetch failed" || errorMsg === "Network Error") {
+        errorMsg = "Connection error. Please try again."
+      }
+    } catch (e) {
+      console.error("Error processing error message:", e)
       errorMsg = "Something went wrong. Please try again."
     }
 
@@ -187,11 +208,22 @@ export function useChatCore({
       }
 
       let attachments: Attachment[] | null = []
+      let attachmentData: Array<{name: string, content_type: string, data: string}> = []
+      
       if (submittedFiles.length > 0) {
         attachments = await handleFileUploads(uid, currentChatId)
         if (attachments === null) {
           return
         }
+        
+        // Convert attachments to base64 data for backend API
+        attachmentData = attachments
+          .filter(att => att.data) // Only include attachments with base64 data
+          .map(att => ({
+            name: att.name,
+            content_type: att.contentType, // Map to backend field name
+            data: att.data! // base64 string
+          }))
       }
 
       const options = {
@@ -202,6 +234,7 @@ export function useChatCore({
           isAuthenticated,
           systemPrompt: systemPrompt || SYSTEM_PROMPT_DEFAULT,
           enableSearch,
+          attachments: attachmentData.length > 0 ? attachmentData : undefined,
         },
         experimental_attachments: attachments || undefined,
       }
@@ -238,34 +271,22 @@ export function useChatCore({
   const handleSuggestion = useCallback(
     async (suggestion: string) => {
       setIsSubmitting(true)
-      const optimisticId = `optimistic-${Date.now().toString()}`
-      const optimisticMessage = {
-        id: optimisticId,
-        content: suggestion,
-        role: "user" as const,
-        createdAt: new Date(),
-      }
-
-      setMessages((prev) => [...prev, optimisticMessage])
 
       try {
         const uid = await getOrCreateGuestUserId(user)
 
         if (!uid) {
-          setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
           return
         }
 
         const allowed = await checkLimitsAndNotify(uid)
         if (!allowed) {
-          setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
           return
         }
 
         const currentChatId = await ensureChatExists(uid, suggestion)
 
         if (!currentChatId) {
-          setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
           return
         }
 
@@ -278,7 +299,6 @@ export function useChatCore({
             systemPrompt: SYSTEM_PROMPT_DEFAULT,
           },
         }
-
         append(
           {
             role: "user",
@@ -286,9 +306,8 @@ export function useChatCore({
           },
           options
         )
-        setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
-      } catch {
-        setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
+      } catch (error) {
+        console.error("Failed to send suggestion:", error)
         toast({ title: "Failed to send suggestion", status: "error" })
       } finally {
         setIsSubmitting(false)

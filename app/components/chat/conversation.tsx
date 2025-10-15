@@ -50,9 +50,13 @@ export function Conversation({
             const hasScrollAnchor =
               isLast && messages.length > initialMessageCount.current
 
+            // Create a more unique key that combines message ID, index, and role
+            // This prevents duplicate key errors when message IDs might be temporarily duplicated
+            const uniqueKey = `${message.id}-${index}-${message.role}`
+
             return (
               <Message
-                key={message.id}
+                key={uniqueKey}
                 id={message.id}
                 variant={message.role}
                 attachments={message.experimental_attachments}

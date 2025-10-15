@@ -14,7 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { getModelInfo } from "@/lib/models"
+import { useModel } from "@/lib/model-store/provider"
 import { cn } from "@/lib/utils"
 import { FileArrowUp, Paperclip } from "@phosphor-icons/react"
 import React from "react"
@@ -31,7 +31,9 @@ export function ButtonFileUpload({
   isUserAuthenticated,
   model,
 }: ButtonFileUploadProps) {
-  const isFileUploadAvailable = getModelInfo(model)?.vision
+  const { isLoading, models } = useModel()
+  const modelInfo = models.find(m => m.id === model)
+  const isFileUploadAvailable = !isLoading && modelInfo?.vision
 
   if (!isFileUploadAvailable) {
     return (
@@ -45,18 +47,31 @@ export function ButtonFileUpload({
                 className="border-border dark:bg-secondary size-9 rounded-full border bg-transparent"
                 type="button"
                 aria-label="Add files"
+                disabled={isLoading}
               >
                 <Paperclip className="size-4" />
               </Button>
             </PopoverTrigger>
           </TooltipTrigger>
-          <TooltipContent>Add files</TooltipContent>
+          <TooltipContent>
+            {isLoading ? "Loading model capabilities..." : "Add files"}
+          </TooltipContent>
         </Tooltip>
         <PopoverContent className="p-2">
           <div className="text-secondary-foreground text-sm">
-            This model does not support file uploads.
-            <br />
-            Please select another model.
+            {isLoading ? (
+              <>
+                Loading model capabilities...
+                <br />
+                Please wait while we check if this model supports file uploads.
+              </>
+            ) : (
+              <>
+                This model does not support file uploads.
+                <br />
+                Please select a model that supports vision/image analysis.
+              </>
+            )}
           </div>
         </PopoverContent>
       </Popover>

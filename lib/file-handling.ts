@@ -20,6 +20,7 @@ export type Attachment = {
   name: string
   contentType: string
   url: string
+  data?: string  // Base64 encoded file content for backend API
 }
 
 export async function validateFile(
@@ -77,15 +78,48 @@ export async function processFiles(
     }
 
     try {
-      const url = await uploadFile(file)
-
-      attachments.push(createAttachment(file, url))
+      // For images, convert to base64 for sending to backend
+      if (file.type.startsWith('image/')) {
+        const base64Data = await fileToBase64(file)
+        
+        // Create attachment with base64 data (for API) and blob URL (for UI)
+        attachments.push({
+          name: file.name,
+          contentType: file.type,
+          url: URL.createObjectURL(file), // For UI display
+          data: base64Data // For backend API
+        })
+      } else {
+        // For non-images, use original logic
+        const url = await uploadFile(file)
+        attachments.push(createAttachment(file, url))
+      }
     } catch (error) {
       console.error(`Error processing file ${file.name}:`, error)
     }
   }
 
   return attachments
+}
+
+/**
+ * Convert a File to base64 string
+ */
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        // Remove data URL prefix (data:image/jpeg;base64,)
+        const base64 = reader.result.split(',')[1]
+        resolve(base64)
+      } else {
+        reject(new Error('Failed to convert file to base64'))
+      }
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
 }
 
 export class FileUploadLimitError extends Error {

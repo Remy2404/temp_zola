@@ -54,7 +54,25 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
       // Fetch from Polymind backend
       // Backend returns array directly, not wrapped in object
       const data = await getPolymindModels()
-      setModels(Array.isArray(data) ? data : [])
+      
+      // Transform backend response to match frontend ModelConfig interface
+      const transformedModels = Array.isArray(data) ? data.map((model: any) => ({
+        id: model.id,
+        name: model.name,
+        provider: model.provider,
+        providerId: model.provider?.toLowerCase() || 'unknown',
+        baseProviderId: model.provider?.toLowerCase() || 'unknown',
+        description: model.description || '',
+        contextWindow: model.context_length,
+        vision: model.supports_vision || false, // Map supports_vision to vision
+        tools: model.supports_tools || false,
+        accessible: model.accessible !== false,
+        // Add other properties as needed
+        speed: "Medium" as const,
+        intelligence: "Medium" as const,
+      })) : []
+      
+      setModels(transformedModels)
     } catch (error) {
       console.error("Failed to fetch models from Polymind:", error)
       // Set empty array on error

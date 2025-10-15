@@ -1,5 +1,5 @@
 /**
- * Chat API - Polymind Backend Proxy
+ * Chat API - Polymind Backend Proxy (Optimized)
  * Proxies chat requests to Polymind backend streaming endpoint
  */
 
@@ -18,105 +18,56 @@ type ChatRequest = {
   systemPrompt: string
   enableSearch: boolean
   message_group_id?: string
+  attachments?: Array<{
+    name: string
+    content_type: string
+    data: string
+  }>
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json() as ChatRequest
-    const {
-      messages,
-      chatId,
-      userId,
-      model,
-      systemPrompt,
-    } = body
+    const { messages, chatId, userId, model, attachments } = body
 
-    // Enhanced validation with detailed error messages
-    if (!messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: "Messages array is required and must be an array" }),
-        { status: 400 }
-      )
-    }
-
-    if (!userId || typeof userId !== 'string') {
-      return new Response(
-        JSON.stringify({ error: "Valid userId is required" }),
-        { status: 400 }
-      )
-    }
-
-    if (messages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "At least one message is required" }),
-        { status: 400 }
-      )
+    // Quick validation (optimized)
+    if (!messages?.length || !userId || !messages[messages.length - 1]?.content?.trim()) {
+      return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400 })
     }
 
     const userMessage = messages[messages.length - 1]
-    
-    if (!userMessage) {
-      return new Response(
-        JSON.stringify({ error: "Last message is missing or invalid" }),
-        { status: 400 }
-      )
-    }
-
-    if (!userMessage.content || typeof userMessage.content !== 'string' || userMessage.content.trim() === '') {
-      return new Response(
-        JSON.stringify({ error: "Message content is required and cannot be empty" }),
-        { status: 400 }
-      )
-    }
-
     if (userMessage.role !== "user") {
-      return new Response(
-        JSON.stringify({ error: `Invalid message role: expected 'user', got '${userMessage.role}'` }),
-        { status: 400 }
-      )
+      return new Response(JSON.stringify({ error: "Invalid message role" }), { status: 400 })
     }
 
-    // Forward authorization header from frontend request
+    // Build headers
+    const headers: HeadersInit = { "Content-Type": "application/json" }
     const authHeader = req.headers.get("authorization")
-    
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-    }
-    
-    if (authHeader) {
-      headers["Authorization"] = authHeader
-    }
+    if (authHeader) headers["Authorization"] = authHeader
 
-    // Proxy request to Polymind backend streaming endpoint
+    // Proxy request to Polymind backend (optimized payload)
     const response = await fetch(`${POLYMIND_API_URL}/webapp/chat/stream`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         message: userMessage.content,
-        model: model,
+        model,
         include_context: true,
-        max_context_messages: 10,
-        chat_id: chatId || undefined,
+        max_context_messages: 5, // Reduced for speed
+        chat_id: chatId,
+        attachments,
       }),
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Polymind backend error:", errorText)
-      return new Response(
-        JSON.stringify({ error: `Backend error: ${response.statusText}` }),
-        { status: response.status }
-      )
+      return new Response(JSON.stringify({ error: `Backend error: ${response.statusText}` }), 
+        { status: response.status })
     }
 
-    // Return the streaming response from backend
-    // Transform SSE to AI SDK format
+    // Optimized stream processing
     const reader = response.body?.getReader()
     if (!reader) {
-      return new Response(
-        JSON.stringify({ error: "No response body" }),
-        { status: 500 }
-      )
+      return new Response(JSON.stringify({ error: "No response body" }), { status: 500 })
     }
 
     const encoder = new TextEncoder()
@@ -129,64 +80,42 @@ export async function POST(req: Request) {
         try {
           while (true) {
             const { done, value } = await reader.read()
-            
-            if (done) {
-              controller.close()
-              break
-            }
+            if (done) break
 
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split("\n")
             buffer = lines.pop() || ""
 
             for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6).trim()
+              if (!line.startsWith("data: ")) continue
+              
+              const data = line.slice(6).trim()
+              if (!data) continue
+              
+              try {
+                const parsed = JSON.parse(data)
                 
-                // Skip empty data
-                if (!data) continue
-                
-                try {
-                  const parsed = JSON.parse(data)
-                  
-                  // Transform Polymind backend format to AI SDK format
-                  if (parsed.type === "content") {
-                    // Send text delta - properly escape the content
-                    const contentStr = typeof parsed.content === 'string' 
-                      ? parsed.content 
-                      : String(parsed.content)
-                    controller.enqueue(
-                      encoder.encode(`0:${JSON.stringify(contentStr)}\n`)
-                    )
-                  } else if (parsed.type === "done") {
-                    // Send done signal
+                switch (parsed.type) {
+                  case "content":
+                    controller.enqueue(encoder.encode(`0:${JSON.stringify(parsed.content)}\n`))
+                    break
+                  case "done":
                     controller.enqueue(encoder.encode(`d:{"finishReason":"stop"}\n`))
-                  } else if (parsed.type === "error") {
-                    // Send error - properly escape the error message
-                    const errorMsg = typeof parsed.error === 'string' 
-                      ? parsed.error 
-                      : String(parsed.error || "Unknown error")
-                    controller.enqueue(
-                      encoder.encode(`3:${JSON.stringify(errorMsg)}\n`)
-                    )
-                  } else if (parsed.type === "start") {
-                    // Ignore start events or log them
+                    break
+                  case "error":
+                    controller.enqueue(encoder.encode(`3:${JSON.stringify(parsed.error)}\n`))
+                    break
+                  case "start":
                     console.log("Stream started with model:", parsed.model)
-                  } else {
-                    console.warn("Unknown event type:", parsed.type)
-                  }
-                } catch (e) {
-                  console.error("Failed to parse SSE data:", data, e)
-                  // If we can't parse it, treat it as a raw error
-                  controller.enqueue(
-                    encoder.encode(`3:${JSON.stringify(`Parse error: ${data.substring(0, 100)}`)}\n`)
-                  )
+                    break
                 }
+              } catch (e) {
+                controller.enqueue(encoder.encode(`3:${JSON.stringify("Parse error")}\n`))
               }
             }
           }
+          controller.close()
         } catch (error) {
-          console.error("Stream error:", error)
           controller.error(error)
         }
       },
@@ -199,25 +128,10 @@ export async function POST(req: Request) {
         "Connection": "keep-alive",
       },
     })
-  } catch (err: unknown) {
+  } catch (err: any) {
     console.error("Error in /api/chat:", err)
-    const error = err as {
-      code?: string
-      message?: string
-      statusCode?: number
-    }
-
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || "Internal server error" 
-      }),
-      { 
-        status: error.statusCode || 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    )
+    return new Response(JSON.stringify({ error: err.message || "Internal server error" }), 
+      { status: err.statusCode || 500, headers: { "Content-Type": "application/json" } })
   }
 }
 
