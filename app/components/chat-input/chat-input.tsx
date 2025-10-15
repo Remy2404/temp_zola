@@ -172,7 +172,7 @@ export function ChatInput({
         />
       )}
       <div
-        className="relative order-2 px-2 pb-3 sm:pb-4 md:order-1"
+        className="relative order-2 px-2 pb-3 sm:pb-4 md:order-1 safe-area-pb"
         onClick={() => textareaRef.current?.focus()}
       >
         <PromptInput
@@ -187,10 +187,10 @@ export function ChatInput({
             placeholder="Ask Polymind"
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            className="min-h-[44px] pt-3 pl-4 text-base leading-[1.3] sm:text-base md:text-base"
+            className="min-h-[44px] pt-3 pl-4 pr-4 text-base leading-[1.3] sm:text-base md:text-base"
           />
-          <PromptInputActions className="mt-3 w-full justify-between p-2">
-            <div className="flex gap-2">
+          <PromptInputActions className="mt-3 w-full justify-between p-2 gap-2 prompt-input-actions">
+            <div className="flex gap-2 flex-wrap">
               <ButtonFileUpload
                 onFileUpload={onFileUpload}
                 isUserAuthenticated={isUserAuthenticated}
@@ -200,7 +200,7 @@ export function ChatInput({
                 selectedModelId={selectedModel}
                 setSelectedModelId={onSelectModel}
                 isUserAuthenticated={isUserAuthenticated}
-                className="rounded-full"
+                className="rounded-full model-selector-mobile"
               />
               {hasSearchSupport ? (
                 <ButtonSearch

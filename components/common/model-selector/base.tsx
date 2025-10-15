@@ -140,11 +140,16 @@ export function ModelSelector({
       className={cn("dark:bg-secondary justify-between", className)}
       disabled={isLoadingModels}
     >
-      <div className="flex items-center gap-2">
-        {currentProvider?.icon && <currentProvider.icon className="size-5" />}
-        <span>{currentModel?.name || "Select model"}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        {currentProvider?.icon && <currentProvider.icon className="size-5 flex-shrink-0" />}
+        <span className={cn(
+          "truncate",
+          isMobile && "max-w-[120px]"
+        )}>
+          {currentModel?.name || "Select model"}
+        </span>
       </div>
-      <CaretDownIcon className="size-4 opacity-50" />
+      <CaretDownIcon className="size-4 opacity-50 flex-shrink-0" />
     </Button>
   )
 

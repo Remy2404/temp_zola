@@ -195,6 +195,44 @@ code {
   body {
     overscroll-behavior-y: contain;
   }
+
+  /* Mobile chat input adjustments */
+  .safe-area-pb {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Prevent model selector overflow on mobile */
+  .model-selector-mobile {
+    max-width: 140px;
+  }
+
+  /* Ensure action buttons don't overlap */
+  .prompt-input-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* History button responsive behavior */
+  .history-buttons-mobile {
+    position: static !important;
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+  }
+
+  /* Smooth transitions for screen size changes */
+  .history-buttons-container {
+    transition: all 300ms ease-in-out;
+  }
+
+  /* Additional responsive behavior for intermediate screen sizes */
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .history-buttons-container {
+      opacity: 0.8;
+    }
+    .history-buttons-container:hover {
+      opacity: 1;
+    }
+  }
 }
 
 /* Telegram theme integration */

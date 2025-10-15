@@ -5,9 +5,7 @@ import type {
   StoreAssistantMessageParams,
 } from "@/app/types/api.types"
 import { FREE_MODELS_IDS, NON_AUTH_ALLOWED_MODELS } from "@/lib/config"
-import { getProviderForModel } from "@/lib/openproviders/provider-map"
-import { sanitizeUserInput } from "@/lib/sanitize"
-import { validateUserIdentity } from "@/lib/server/api"
+import { getModelInfo } from "@/lib/models"
 import { checkUsageByModel, incrementUsage } from "@/lib/usage"
 import { getUserKey, type ProviderWithoutOllama } from "@/lib/user-keys"
 
@@ -30,9 +28,10 @@ export async function validateAndTrackUsage({
     }
   } else {
     // For authenticated users, check API key requirements
-    const provider = getProviderForModel(model)
+    const modelInfo = getModelInfo(model)
+    const provider = modelInfo?.providerId
 
-    if (provider !== "ollama") {
+    if (provider && provider !== "ollama") {
       const userApiKey = await getUserKey(
         userId,
         provider as ProviderWithoutOllama

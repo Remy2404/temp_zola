@@ -1,34 +1,12 @@
 import { FREE_MODELS_IDS } from "../config"
-import { claudeModels } from "./data/claude"
-import { deepseekModels } from "./data/deepseek"
-import { geminiModels } from "./data/gemini"
-import { grokModels } from "./data/grok"
-import { mistralModels } from "./data/mistral"
-import { getOllamaModels, ollamaModels } from "./data/ollama"
-import { openaiModels } from "./data/openai"
-import { openrouterModels } from "./data/openrouter"
-import { perplexityModels } from "./data/perplexity"
 import { ModelConfig } from "./types"
-
-// Static models (always available)
-const STATIC_MODELS: ModelConfig[] = [
-  ...openaiModels,
-  ...mistralModels,
-  ...deepseekModels,
-  ...claudeModels,
-  ...grokModels,
-  ...perplexityModels,
-  ...geminiModels,
-  ...ollamaModels, // Static fallback Ollama models
-  ...openrouterModels,
-]
 
 // Dynamic models cache
 let dynamicModelsCache: ModelConfig[] | null = null
 let lastFetchTime = 0
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
-// // Function to get all models including dynamically detected ones
+// Function to get all models from backend
 export async function getAllModels(): Promise<ModelConfig[]> {
   const now = Date.now()
 
@@ -38,21 +16,16 @@ export async function getAllModels(): Promise<ModelConfig[]> {
   }
 
   try {
-    // Get dynamically detected Ollama models (includes enabled check internally)
-    const detectedOllamaModels = await getOllamaModels()
+    // Import the backend fetch function dynamically to avoid circular dependencies
+    const { getModels } = await import("@/lib/polymind/api")
+    const backendModels = await getModels()
 
-    // Combine static models (excluding static Ollama models) with detected ones
-    const staticModelsWithoutOllama = STATIC_MODELS.filter(
-      (model) => model.providerId !== "ollama"
-    )
-
-    dynamicModelsCache = [...staticModelsWithoutOllama, ...detectedOllamaModels]
-
+    dynamicModelsCache = Array.isArray(backendModels) ? backendModels : []
     lastFetchTime = now
     return dynamicModelsCache
   } catch (error) {
-    console.warn("Failed to load dynamic models, using static models:", error)
-    return STATIC_MODELS
+    console.warn("Failed to load models from backend:", error)
+    return []
   }
 }
 
@@ -60,10 +33,7 @@ export async function getModelsWithAccessFlags(): Promise<ModelConfig[]> {
   const models = await getAllModels()
 
   const freeModels = models
-    .filter(
-      (model) =>
-        FREE_MODELS_IDS.includes(model.id) || model.providerId === "ollama"
-    )
+    .filter((model) => FREE_MODELS_IDS.includes(model.id))
     .map((model) => ({
       ...model,
       accessible: true,
@@ -82,45 +52,43 @@ export async function getModelsWithAccessFlags(): Promise<ModelConfig[]> {
 export async function getModelsForProvider(
   provider: string
 ): Promise<ModelConfig[]> {
-  const models = STATIC_MODELS
+  const models = await getAllModels()
 
-  const providerModels = models
+  return models
     .filter((model) => model.providerId === provider)
     .map((model) => ({
       ...model,
       accessible: true,
     }))
-
-  return providerModels
 }
 
 // Function to get models based on user's available providers
 export async function getModelsForUserProviders(
   providers: string[]
 ): Promise<ModelConfig[]> {
-  const providerModels = await Promise.all(
-    providers.map((provider) => getModelsForProvider(provider))
-  )
+  const models = await getAllModels()
 
-  const flatProviderModels = providerModels.flat()
-
-  return flatProviderModels
+  return models.filter((model) => providers.includes(model.providerId))
 }
 
 // Synchronous function to get model info for simple lookups
-// This uses cached data if available, otherwise falls back to static models
+// This uses cached data if available
 export function getModelInfo(modelId: string): ModelConfig | undefined {
   // First check the cache if it exists
   if (dynamicModelsCache) {
-    return dynamicModelsCache.find((model) => model.id === modelId)
+    const cachedModel = dynamicModelsCache.find((model) => model.id === modelId)
+    if (cachedModel) return cachedModel
   }
 
-  // Fall back to static models for immediate lookup
-  return STATIC_MODELS.find((model) => model.id === modelId)
+  // For client-side usage, we need to check if we're in a React context
+  // This is a workaround since we can't directly access the model store context here
+  // The function will be called from components that have access to the model store
+  // For now, return undefined if not found
+  return undefined
 }
 
-// For backward compatibility - static models only
-export const MODELS: ModelConfig[] = STATIC_MODELS
+// For backward compatibility - empty array since we don't use static models anymore
+export const MODELS: ModelConfig[] = []
 
 // Function to refresh the models cache
 export function refreshModelsCache(): void {

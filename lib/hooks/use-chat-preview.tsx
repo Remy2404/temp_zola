@@ -70,8 +70,9 @@ export function useChatPreview(): UseChatPreviewReturn {
                 id: msg.id,
                 content: msg.content,
                 role: msg.role as "user" | "assistant",
-                created_at:
-                  msg.createdAt?.toISOString() || new Date().toISOString(),
+                created_at: msg.createdAt 
+                  ? new Date(msg.createdAt).toISOString() 
+                  : new Date().toISOString(),
               }))
             setMessages(cachedMessages)
           }
@@ -94,8 +95,9 @@ export function useChatPreview(): UseChatPreviewReturn {
                 id: msg.id,
                 content: msg.content,
                 role: msg.role as "user" | "assistant",
-                created_at:
-                  msg.createdAt?.toISOString() || new Date().toISOString(),
+                created_at: msg.createdAt 
+                  ? new Date(msg.createdAt).toISOString() 
+                  : new Date().toISOString(),
               }))
             setMessages(freshMessages)
           }

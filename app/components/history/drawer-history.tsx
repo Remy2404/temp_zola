@@ -1,3 +1,4 @@
+import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
@@ -40,6 +41,7 @@ export function DrawerHistory({
   setIsOpen,
 }: DrawerHistoryProps) {
   const { pinnedChats, togglePinned } = useChats()
+  const isMobile = useBreakpoint(768)
   const [searchQuery, setSearchQuery] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState("")
@@ -96,33 +98,23 @@ export function DrawerHistory({
   // Memoize filtered chats to avoid recalculating on every render
   const filteredChat = useMemo(() => {
     const query = searchQuery.toLowerCase()
-    // Deduplicate chats by ID to prevent React key conflicts
-    const uniqueChats = chatHistory.filter((chat, index, self) => 
-      index === self.findIndex(c => c.id === chat.id)
-    )
     return query
-      ? uniqueChats.filter((chat) =>
+      ? chatHistory.filter((chat) =>
           (chat.title || "").toLowerCase().includes(query)
         )
-      : uniqueChats
+      : chatHistory
   }, [chatHistory, searchQuery])
 
   // Group chats by time periods - memoized to avoid recalculation
   const groupedChats = useMemo(
-    () => {
-      // Deduplicate chats by ID before grouping
-      const uniqueChats = chatHistory.filter((chat, index, self) => 
-        index === self.findIndex(c => c.id === chat.id)
-      )
-      return groupChatsByDate(uniqueChats, searchQuery)
-    },
+    () => groupChatsByDate(chatHistory, searchQuery),
     [chatHistory, searchQuery]
   )
 
   // Render chat item
   const renderChatItem = useCallback(
-    (chat: Chats, index?: number, context?: string) => (
-      <div key={`${chat.id}-${context || 'default'}-${index || 0}`}>
+    (chat: Chats) => (
+      <div key={chat.id}>
         <div className="space-y-1.5">
           {editingId === chat.id ? (
             <div className="bg-accent flex items-center justify-between rounded-lg px-2 py-2.5">
@@ -224,6 +216,7 @@ export function DrawerHistory({
             >
               <Link
                 href={`/c/${chat.id}`}
+                key={chat.id}
                 className="flex flex-1 flex-col items-start"
                 prefetch
               >
@@ -234,8 +227,8 @@ export function DrawerHistory({
                   {formatDate(chat?.updated_at || chat?.created_at)}
                 </span>
               </Link>
-              <div className="flex items-center">
-                <div className="flex gap-1">
+              <div className="flex items-center transition-all duration-300 ease-in-out">
+                <div className="flex gap-1 history-buttons-container">
                   <Button
                     size="icon"
                     variant="ghost"
@@ -331,7 +324,7 @@ export function DrawerHistory({
               ) : searchQuery ? (
                 // When searching, display a flat list without grouping
                 <div className="space-y-2">
-                  {filteredChat.map((chat, index) => renderChatItem(chat, index, 'search'))}
+                  {filteredChat.map((chat) => renderChatItem(chat))}
                 </div>
               ) : (
                 <>
@@ -342,7 +335,7 @@ export function DrawerHistory({
                         Pinned
                       </h3>
                       <div className="space-y-2">
-                        {pinnedChats.map((chat, index) => renderChatItem(chat, index, 'pinned'))}
+                        {pinnedChats.map((chat) => renderChatItem(chat))}
                       </div>
                     </div>
                   )}
@@ -352,7 +345,7 @@ export function DrawerHistory({
                         {group.name}
                       </h3>
                       <div className="space-y-2">
-                        {group.chats.map((chat, index) => renderChatItem(chat, index, group.name))}
+                        {group.chats.map((chat) => renderChatItem(chat))}
                       </div>
                     </div>
                   ))}

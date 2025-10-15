@@ -1,5 +1,6 @@
 "use client"
 
+import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import { useKeyShortcut } from "@/app/hooks/use-key-shortcut"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,7 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Input } from "@/components/ui/input"
 import {
   Tooltip,
@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils"
 import { Check, PencilSimple, TrashSimple, X } from "@phosphor-icons/react"
 import { Pin, PinOff } from "lucide-react"
 import { useRouter } from "next/navigation"
-import * as React from "react"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { ChatPreviewPanel } from "./chat-preview-panel"
 import { CommandFooter } from "./command-footer"
@@ -213,6 +212,7 @@ function CommandItemRow({
   const { chatId } = useChatSession()
   const isCurrentChat = chat.id === chatId
   const { togglePinned } = useChats()
+  const isMobile = useBreakpoint(384)
 
   return (
     <>
@@ -223,12 +223,23 @@ function CommandItemRow({
         {isCurrentChat && <Badge variant="outline">current</Badge>}
       </div>
 
-      <div className="relative flex min-w-[140px] flex-shrink-0 items-center justify-end">
-        <div className="text-muted-foreground mr-2 text-xs transition-opacity duration-200 group-hover:opacity-0">
+      <div className={cn(
+        "relative flex items-center justify-end",
+        isMobile ? "min-w-[120px] flex-shrink-0" : "min-w-[140px] flex-shrink-0"
+      )}>
+        <div className={cn(
+          "text-muted-foreground mr-2 text-xs transition-opacity duration-200",
+          isMobile ? "group-hover:opacity-100" : "group-hover:opacity-0"
+        )}>
           {formatDate(chat.updated_at || chat.created_at)}
         </div>
 
-        <div className="absolute right-0 flex translate-x-1 gap-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+        <div className={cn(
+          "flex gap-1 history-buttons-container",
+          isMobile
+            ? "history-buttons-mobile"
+            : "absolute right-0 translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+        )}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -312,21 +323,15 @@ function CustomCommandDialog({
   open,
   ...props
 }: CustomCommandDialogProps) {
-  // Generate unique IDs for accessibility
-  const titleId = React.useId()
-  const descriptionId = React.useId()
-  
   return (
     <Dialog {...props} onOpenChange={onOpenChange} open={open}>
+      <DialogHeader className="sr-only">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
       <DialogContent
         className={cn("overflow-hidden border-none p-0", className)}
-        aria-labelledby={titleId}
-        aria-describedby={descriptionId}
       >
-        <VisuallyHidden>
-          <DialogTitle id={titleId}>{title}</DialogTitle>
-          <DialogDescription id={descriptionId}>{description}</DialogDescription>
-        </VisuallyHidden>
         <Command className="[&_[cmdk-group-heading]]:text-muted-foreground border-none **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-item]_svg]:border-none">
           {children}
         </Command>

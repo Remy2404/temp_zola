@@ -1,8 +1,16 @@
 import { decryptKey } from "./encryption"
-import { env } from "./openproviders/env"
-import { Provider } from "./openproviders/types"
 
-export type { Provider } from "./openproviders/types"
+// Define provider types based on backend model configurations
+export type Provider =
+  | "openai"
+  | "mistral"
+  | "perplexity"
+  | "google"
+  | "anthropic"
+  | "xai"
+  | "openrouter"
+  | "ollama"
+
 export type ProviderWithoutOllama = Exclude<Provider, "ollama">
 
 export async function getUserKey(
@@ -24,13 +32,13 @@ export async function getEffectiveApiKey(
   }
 
   const envKeyMap: Record<ProviderWithoutOllama, string | undefined> = {
-    openai: env.OPENAI_API_KEY,
-    mistral: env.MISTRAL_API_KEY,
-    perplexity: env.PERPLEXITY_API_KEY,
-    google: env.GOOGLE_GENERATIVE_AI_API_KEY,
-    anthropic: env.ANTHROPIC_API_KEY,
-    xai: env.XAI_API_KEY,
-    openrouter: env.OPENROUTER_API_KEY,
+    openai: process.env.OPENAI_API_KEY,
+    mistral: process.env.MISTRAL_API_KEY,
+    perplexity: process.env.PERPLEXITY_API_KEY,
+    google: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    anthropic: process.env.ANTHROPIC_API_KEY,
+    xai: process.env.XAI_API_KEY,
+    openrouter: process.env.OPENROUTER_API_KEY,
   }
 
   return envKeyMap[provider] || null
