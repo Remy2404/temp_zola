@@ -1,29 +1,18 @@
-"use client"
+"use client";
 
-import { groupChatsByDate } from "@/app/components/history/utils"
-import { useBreakpoint } from "@/app/hooks/use-breakpoint"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  useSidebar,
-} from "@/components/ui/sidebar"
-import { useChats } from "@/lib/chat-store/chats/provider"
-import {
-  ChatTeardropText,
-  GithubLogo,
-  MagnifyingGlass,
-  NotePencilIcon,
-  X,
-} from "@phosphor-icons/react"
-import { Pin } from "lucide-react"
-import { useParams, useRouter } from "next/navigation"
-import { useMemo } from "react"
-import { HistoryTrigger } from "../../history/history-trigger"
-import { SidebarList } from "./sidebar-list"
-import { SidebarProject } from "./sidebar-project"
+import { groupChatsByDate } from "@/app/components/history/utils";
+import { useBreakpoint } from "@/app/hooks/use-breakpoint";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, useSidebar } from "@/components/ui/sidebar";
+import { useChats } from "@/lib/chat-store/chats/provider";
+import { ChatTeardropText, GithubLogo, MagnifyingGlass, NotePencilIcon, X } from "@phosphor-icons/react";
+import { Pin } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { HistoryTrigger } from "../../history/history-trigger";
+import { SidebarList } from "./sidebar-list";
+import { SidebarProject } from "./sidebar-project";
+
 
 export function AppSidebar() {
   const isMobile = useBreakpoint(768)
@@ -132,7 +121,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-border/40 mb-2 border-t p-3">
         <a
-          href="https://github.com/ibelick/polymind"
+          href="https://github.com/Remy2404/Polymind"
           className="hover:bg-muted flex items-center gap-2 rounded-md p-2"
           target="_blank"
           aria-label="Star the repo on GitHub"
