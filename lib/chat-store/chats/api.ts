@@ -75,12 +75,24 @@ export async function fetchAndCacheChats(): Promise<Chats[]> {
       try {
         const cached = await getCachedChats()
 
-        // Build map of chats; backend overrides cached entries with same id
+        // Build map of chats; backend is source of truth
         const mergedMap = new Map<string, Chats>()
-        // First add cached
+        
+        // First add cached chats
         cached.forEach((c) => mergedMap.set(c.id, c))
-        // Then add/override with backend
+        
+        // Then add/override with backend chats (backend wins)
         backendChats.forEach((c) => mergedMap.set(c.id, c))
+        
+        // CLEANUP: Remove chats that exist in cache but not in backend
+        // This handles the case where a chat was deleted but cache wasn't updated
+        const backendIds = new Set(backendChats.map(c => c.id))
+        const staleChats = cached.filter(c => !backendIds.has(c.id))
+        
+        if (staleChats.length > 0) {
+          console.log(`[ChatsAPI] Removing ${staleChats.length} stale chats from cache:`, staleChats.map(c => c.id))
+          staleChats.forEach(c => mergedMap.delete(c.id))
+        }
 
         const merged = Array.from(mergedMap.values()).sort(
           (a, b) => +new Date(b.created_at || "") - +new Date(a.created_at || "")
@@ -136,12 +148,38 @@ export async function updateChatTitle(
 }
 
 export async function deleteChat(id: string): Promise<void> {
-  // Delete from cache - backend deletion handled separately
+  try {
+    console.log(`[ChatsAPI] Deleting chat ${id} from backend...`)
+    
+    // Delete from backend first using polymindFetch
+    const response = await polymindFetch(`/webapp/chats/${id}`, {
+      method: 'DELETE',
+    })
+    
+    // Handle success (200) or already deleted (404) - both mean the chat doesn't exist on backend
+    if (response.ok) {
+      const result = await response.json()
+      console.log(`[ChatsAPI] Successfully deleted chat from backend:`, result)
+    } else if (response.status === 404) {
+      console.log(`[ChatsAPI] Chat ${id} already deleted or not found on backend (404) - removing from local cache`)
+    } else {
+      const errorText = await response.text()
+      console.error(`[ChatsAPI] Failed to delete chat from backend: ${response.status} ${response.statusText}`)
+      console.error(`[ChatsAPI] Error response:`, errorText)
+      throw new Error(`Failed to delete chat: ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('[ChatsAPI] Error deleting chat from backend:', error)
+    throw error
+  }
+  
+  // Delete from local cache (even if 404 - chat is gone from backend either way)
   const all = await getCachedChats()
   await writeToIndexedDB(
     "chats",
     (all as Chats[]).filter((c) => c.id !== id)
   )
+  console.log(`[ChatsAPI] Deleted chat ${id} from local cache`)
 }
 
 export async function getChat(chatId: string): Promise<Chat | null> {

@@ -74,6 +74,11 @@ export async function getMessagesFromDb(
       }
       
       return messages
+    } else if (response.status === 404) {
+      // Chat was deleted or doesn't exist - return empty (no error)
+      console.log(`[MessagesAPI] Chat ${chatId} not found (404) - likely deleted. Returning empty messages.`)
+      await clearMessagesCache(chatId) // Clear any stale cache
+      return []
     } else if (response.status === 403) {
       console.error(`[MessagesAPI] Access denied for chatId=${chatId}`)
       return []
