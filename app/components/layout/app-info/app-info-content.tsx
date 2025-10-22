@@ -20,7 +20,6 @@ export function AppInfoContent() {
         >
           GitHub
         </a>
-        .
       </p>
     </div>
   )

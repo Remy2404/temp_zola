@@ -29,13 +29,17 @@ async function waitForTelegramInit(maxWaitMs = 5000): Promise<boolean> {
 /**
  * Fetch with Telegram authentication
  * Exported for use in other modules that need authenticated requests
+ * 
+ * Supports two authentication methods:
+ * 1. Primary: Telegram initData (from mini app)
+ * 2. Fallback: user_id URL parameter (when opened outside Telegram, e.g., "Open" button)
  */
 export async function polymindFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
   // Wait for Telegram initialization before getting auth data
   if (!telegramWebApp.isInitialized()) {
     const initialized = await waitForTelegramInit()
     if (!initialized) {
-      console.warn('[Polymind API] Telegram initialization timeout - proceeding without auth')
+      console.warn('[Polymind API] Telegram initialization timeout - proceeding with fallback auth')
     }
   }
   
@@ -52,10 +56,28 @@ export async function polymindFetch(endpoint: string, options: RequestInit = {})
     (headers as Record<string, string>)['Authorization'] = `tma ${initData}`
     console.log('[Polymind API] Request authenticated with Telegram init data')
   } else {
-    console.warn('[Polymind API] No Telegram init data available - request may fail')
+    console.warn('[Polymind API] No Telegram init data available - attempting fallback authentication')
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
+  let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
+  
+  // Fallback: if no initData, try to add user_id from URL parameters
+  // This supports opening the app via "Open" button outside Telegram context
+  if (!initData) {
+    try {
+      const urlParams = new URLSearchParams(window.location.search)
+      const userIdParam = urlParams.get('user_id')
+      
+      if (userIdParam) {
+        // Add user_id as query parameter for fallback authentication
+        const separator = url.includes('?') ? '&' : '?'
+        url += `${separator}user_id=${encodeURIComponent(userIdParam)}`
+        console.log('[Polymind API] Using fallback authentication with user_id from URL')
+      }
+    } catch (error) {
+      console.warn('[Polymind API] Error processing URL parameters:', error)
+    }
+  }
 
   return fetch(url, {
     ...options,
