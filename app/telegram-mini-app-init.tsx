@@ -12,9 +12,62 @@ export function TelegramMiniAppInit() {
   const { user, setUser } = useUser()
 
   useEffect(() => {
-    // Only run in Telegram environment
-    if (!telegramWebApp.isAvailable()) {
-      console.warn("[Telegram Mini App] Not running in Telegram environment")
+    // Skip if user is already authenticated
+    if (user) {
+      console.log("[Telegram Mini App] User already authenticated, skipping initialization")
+      return
+    }
+
+    // Check if running in Telegram environment
+    const isInTelegram = telegramWebApp.isAvailable()
+    
+    if (!isInTelegram) {
+      console.warn("[Telegram Mini App] Not running in Telegram environment - attempting fallback authentication")
+      
+      // Fallback authentication: check for user_id in URL parameters
+      // This handles the "Open" button scenario where the app is opened outside Telegram
+      if (typeof window !== 'undefined') {
+        try {
+          const urlParams = new URLSearchParams(window.location.search)
+          const userIdParam = urlParams.get('user_id')
+          
+          if (userIdParam) {
+            console.log("[Telegram Mini App] Found user_id in URL parameters:", userIdParam)
+            
+            // Create a minimal user object for fallback authentication
+            const fallbackUserProfile = {
+              id: userIdParam,
+              display_name: 'User',
+              profile_image: '',
+              email: `${userIdParam}@telegram.user`,
+              created_at: new Date().toISOString(),
+              anonymous: false,
+              premium: false,
+              favorite_models: null,
+              message_count: null,
+              daily_message_count: null,
+              daily_reset: null,
+              last_active_at: new Date().toISOString(),
+              daily_pro_message_count: null,
+              daily_pro_reset: null,
+              system_prompt: null,
+            }
+            
+            // Set the user in the UserProvider
+            setUser(fallbackUserProfile as any)
+            
+            console.log("[Telegram Mini App] Fallback authentication successful:", {
+              id: userIdParam,
+              name: fallbackUserProfile.display_name,
+            })
+          } else {
+            console.warn("[Telegram Mini App] No user_id found in URL parameters - authentication failed")
+          }
+        } catch (error) {
+          console.error("[Telegram Mini App] Fallback authentication error:", error)
+        }
+      }
+      
       return
     }
 
@@ -113,9 +166,7 @@ export function TelegramMiniAppInit() {
         )
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Run once on mount
 
-  // This component doesn't render anything
+  }, [user]) 
   return null
 }

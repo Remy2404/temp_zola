@@ -2,6 +2,7 @@
 
 import { getModels as getPolymindModels } from "@/lib/polymind/api"
 import { ModelConfig } from "@/lib/models/types"
+import { useUser } from "@/lib/user-store/provider"
 import {
   createContext,
   useCallback,
@@ -36,6 +37,7 @@ type ModelContextType = {
 const ModelContext = createContext<ModelContextType | undefined>(undefined)
 
 export function ModelProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useUser()
   const [models, setModels] = useState<ModelConfig[]>([])
   const [userKeyStatus, setUserKeyStatus] = useState<UserKeyStatus>({
     openrouter: false,
@@ -169,11 +171,18 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchModels, fetchUserKeyStatus, fetchFavoriteModels])
 
-  // Initial data fetch
+  // Initial data fetch - wait for user authentication
   useEffect(() => {
-    refreshAll()
+    // Only fetch if user is authenticated
+    if (user) {
+      console.log('[ModelProvider] User authenticated, fetching models...')
+      refreshAll()
+    } else {
+      console.log('[ModelProvider] Waiting for user authentication...')
+      setIsLoading(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Only run once on mount
+  }, [user]) // Run when user changes
 
   return (
     <ModelContext.Provider
