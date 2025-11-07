@@ -13,8 +13,8 @@ const baseConfig: NextConfig = {
     optimizePackageImports: ["@phosphor-icons/react", "@radix-ui/react-*"],
     nodeMiddleware: true,
     // Enable build performance optimizations
-    webpackBuildWorker: true,
-    optimizeCss: true,
+  webpackBuildWorker: true,
+  optimizeCss: false,
   },
   serverExternalPackages: ["shiki", "vscode-oniguruma"],
   // Performance optimizations
@@ -57,10 +57,10 @@ const nextConfig: NextConfig = withBundleAnalyzer({
     // Reduce bundle size in dev
     experimental: {
       ...baseConfig.experimental,
-      // Enable faster builds
-      webpackBuildWorker: true,
-      // Optimize CSS
-      optimizeCss: true,
+  // Enable faster builds
+  webpackBuildWorker: true,
+  // Disable CSS optimization that requires optional native deps on Vercel
+  optimizeCss: false,
     },
     // Disable some checks in dev for speed
     typescript: {
