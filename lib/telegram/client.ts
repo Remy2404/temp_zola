@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import logger from '@/lib/logger'
 import type { TelegramUser, TelegramWebApp, TelegramWebAppInitData } from './types'
 
 class TelegramWebAppClient {
@@ -15,12 +16,12 @@ class TelegramWebAppClient {
    */
   init(): boolean {
     if (typeof window === 'undefined') {
-      console.log('[Telegram WebApp] Skipping init - running on server')
+      logger.info('[Telegram WebApp] Skipping init - running on server')
       return false
     }
 
     if (!window.Telegram?.WebApp) {
-      console.warn('[Telegram WebApp] ⚠️ SDK not loaded - not running in Telegram')
+      logger.warn('[Telegram WebApp] ⚠️ SDK not loaded - not running in Telegram')
       return false
     }
 
@@ -30,7 +31,7 @@ class TelegramWebAppClient {
     this.initialized = true
 
     const user = this.getUser()
-    console.log('[Telegram WebApp] ✅ Initialized:', {
+    logger.info('[Telegram WebApp] ✅ Initialized:', {
       version: this.webapp.version,
       platform: this.webapp.platform,
       colorScheme: this.webapp.colorScheme,

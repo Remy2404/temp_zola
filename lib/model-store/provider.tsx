@@ -10,6 +10,7 @@ import {
   useEffect,
   useState,
 } from "react"
+import logger from '@/lib/logger'
 
 type UserKeyStatus = {
   openrouter: boolean
@@ -76,7 +77,7 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
       
       setModels(transformedModels)
     } catch (error) {
-      console.error("Failed to fetch models from Polymind:", error)
+        logger.error("Failed to fetch models from Polymind:", error)
       // Set empty array on error
       setModels([])
     }
@@ -96,7 +97,7 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
         anthropic: true,
       })
     } catch (error) {
-      console.error("Failed to fetch user key status:", error)
+        logger.error("Failed to fetch user key status:", error)
       setUserKeyStatus({
         openrouter: false,
         openai: false,
@@ -115,7 +116,7 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
       // For now, return empty array until backend implements this
       setFavoriteModels([])
     } catch (error) {
-      console.error("Failed to fetch favorite models:", error)
+        logger.error("Failed to fetch favorite models:", error)
       setFavoriteModels([])
     }
   }, [])
@@ -151,7 +152,7 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
     try {
       await fetchFavoriteModels()
     } catch (error) {
-      console.error(
+        logger.error(
         "❌ ModelProvider: Failed to silently refresh favorite models:",
         error
       )
@@ -175,10 +176,10 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Only fetch if user is authenticated
     if (user) {
-      console.log('[ModelProvider] User authenticated, fetching models...')
+      logger.info('[ModelProvider] User authenticated, fetching models...')
       refreshAll()
     } else {
-      console.log('[ModelProvider] Waiting for user authentication...')
+      logger.info('[ModelProvider] Waiting for user authentication...')
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

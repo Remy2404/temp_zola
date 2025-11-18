@@ -2,6 +2,7 @@
 import { toast } from "@/components/ui/toast"
 import type { UserProfile } from "@/lib/user/types"
 import { polymindFetch } from "@/lib/polymind/api"
+import logger from "@/lib/logger"
 
 export async function fetchUserProfile(
   id: string
@@ -9,7 +10,7 @@ export async function fetchUserProfile(
   try {
     const response = await polymindFetch('/webapp/user', { method: 'GET' })
     if (!response.ok) {
-      console.error("Failed to fetch user:", response.statusText)
+      logger.error("Failed to fetch user:", response.statusText)
       return null
     }
     const userData = await response.json()
@@ -28,7 +29,7 @@ export async function fetchUserProfile(
       anonymous: false,
     }
   } catch (error) {
-    console.error("Failed to fetch user:", error)
+    logger.error("Failed to fetch user:", error)
     return null
   }
 }
@@ -39,7 +40,7 @@ export async function updateUserProfile(
 ): Promise<boolean> {
   // Note: User profile updates are not supported in the current Telegram Mini App architecture
   // User data comes from Telegram and cannot be modified
-  console.warn("User profile updates are not supported")
+  logger.warn("User profile updates are not supported")
   toast({
     title: "Profile update not supported",
     description: "User profiles are managed by Telegram",
@@ -64,6 +65,6 @@ export function subscribeToUserUpdates(
 ) {
   // No realtime subscriptions in the current architecture
   // User data is static from Telegram init data
-  console.warn("User update subscriptions are not supported")
+  logger.warn("User update subscriptions are not supported")
   return () => {}
 }

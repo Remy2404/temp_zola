@@ -4,6 +4,7 @@ import {
   getMessagesFromDb,
 } from "@/lib/chat-store/messages/api"
 import { useCallback, useEffect, useRef, useState } from "react"
+import logger from "@/lib/logger"
 
 interface ChatMessage {
   id: string
@@ -108,7 +109,7 @@ export function useChatPreview(): UseChatPreviewReturn {
           currentRequestRef.current === chatId &&
           !controller.signal.aborted
         ) {
-          console.error("Error fetching chat preview:", err)
+          logger.error("Error fetching chat preview:", err)
           setError(
             err instanceof Error ? err.message : "Unknown error occurred"
           )

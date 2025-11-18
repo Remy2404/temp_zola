@@ -4,8 +4,10 @@ const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY
 
 // For Polymind, encryption is optional since API keys are managed by backend
 // This is only needed for the old Zola architecture with user-provided keys
+import logger from "@/lib/logger"
+
 if (!ENCRYPTION_KEY) {
-  console.warn("ENCRYPTION_KEY not set - encryption features disabled (not needed for Polymind backend)")
+  logger.warn("ENCRYPTION_KEY not set - encryption features disabled (not needed for Polymind backend)")
 }
 
 const ALGORITHM = "aes-256-gcm"

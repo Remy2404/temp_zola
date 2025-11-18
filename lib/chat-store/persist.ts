@@ -7,6 +7,7 @@ import {
   keys,
   setMany,
 } from "idb-keyval"
+import logger from "@/lib/logger"
 
 let dbInitPromise: Promise<void> | null = null
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,7 +60,7 @@ if (isClient) {
         initDatabaseAndStores()
       }
       deleteRequest.onerror = (event) => {
-        console.error("Database deletion failed:", event)
+        logger.error("Database deletion failed:", event)
         initDatabaseAndStores()
       }
     } else {
@@ -111,7 +112,7 @@ function initDatabaseAndStores(): void {
               }
 
               reopenRequest.onerror = (event) => {
-                console.error(
+                logger.error(
                   "Failed to reopen database after recreation:",
                   event
                 )
@@ -138,13 +139,13 @@ function initDatabaseAndStores(): void {
       }
 
       openRequest.onerror = (event) => {
-        console.error("Failed to open database for store creation:", event)
+        logger.error("Failed to open database for store creation:", event)
         storesReady = true
         storesReadyResolve()
       }
     })
     .catch((error) => {
-      console.error("Database initialization failed:", error)
+      logger.error("Database initialization failed:", error)
       storesReady = true
       storesReadyResolve()
     })
@@ -152,7 +153,7 @@ function initDatabaseAndStores(): void {
 
 export async function ensureDbReady() {
   if (!isClient) {
-    console.warn("ensureDbReady: not client")
+    logger.warn("ensureDbReady: not client")
     return
   }
   if (dbInitPromise) await dbInitPromise
@@ -166,12 +167,12 @@ export async function readFromIndexedDB<T>(
   await ensureDbReady()
 
   if (!isClient) {
-    console.warn("readFromIndexedDB: not client")
+    logger.warn("readFromIndexedDB: not client")
     return key ? (null as T) : []
   }
 
   if (!stores[table]) {
-    console.warn("readFromIndexedDB: store not initialized")
+    logger.warn("readFromIndexedDB: store not initialized")
     return key ? (null as T) : []
   }
 
@@ -190,7 +191,7 @@ export async function readFromIndexedDB<T>(
 
     return []
   } catch (error) {
-    console.warn(`readFromIndexedDB failed (${table}):`, error)
+    logger.warn(`readFromIndexedDB failed (${table}):`, error)
     return key ? (null as T) : []
   }
 }
@@ -202,12 +203,12 @@ export async function writeToIndexedDB<T extends { id: string | number }>(
   await ensureDbReady()
 
   if (!isClient) {
-    console.warn("writeToIndexedDB: not client")
+    logger.warn("writeToIndexedDB: not client")
     return
   }
 
   if (!stores[table]) {
-    console.warn("writeToIndexedDB: store not initialized")
+    logger.warn("writeToIndexedDB: store not initialized")
     return
   }
 
@@ -219,7 +220,7 @@ export async function writeToIndexedDB<T extends { id: string | number }>(
 
     await setMany(entries, store)
   } catch (error) {
-    console.warn(`writeToIndexedDB failed (${table}):`, error)
+    logger.warn(`writeToIndexedDB failed (${table}):`, error)
   }
 }
 
@@ -230,13 +231,13 @@ export async function deleteFromIndexedDB(
   await ensureDbReady()
 
   if (!isClient) {
-    console.warn("deleteFromIndexedDB: not client")
+    logger.warn("deleteFromIndexedDB: not client")
     return
   }
 
   const store = stores[table]
   if (!store) {
-    console.warn(`Store '${table}' not initialized.`)
+    logger.warn(`Store '${table}' not initialized.`)
     return
   }
 
@@ -248,13 +249,13 @@ export async function deleteFromIndexedDB(
       await delMany(allKeys as string[], store)
     }
   } catch (error) {
-    console.error(`Error deleting from IndexedDB store '${table}':`, error)
+  logger.error(`Error deleting from IndexedDB store '${table}':`, error)
   }
 }
 
 export async function clearAllIndexedDBStores() {
   if (!isClient) {
-    console.warn("clearAllIndexedDBStores: not client")
+    logger.warn("clearAllIndexedDBStores: not client")
     return
   }
 

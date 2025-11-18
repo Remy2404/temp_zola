@@ -1,7 +1,8 @@
 import { toast } from "@/components/ui/toast"
+import logger from "./logger"
 import { DAILY_FILE_UPLOAD_LIMIT } from "./config"
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 const ALLOWED_FILE_TYPES = [
   "image/jpeg",
@@ -68,7 +69,7 @@ export async function processFiles(
   for (const file of files) {
     const validation = await validateFile(file)
     if (!validation.isValid) {
-      console.warn(`File ${file.name} validation failed:`, validation.error)
+      logger.warn(`File ${file.name} validation failed:`, validation.error)
       toast({
         title: "File validation failed",
         description: validation.error,
@@ -95,7 +96,7 @@ export async function processFiles(
         attachments.push(createAttachment(file, url))
       }
     } catch (error) {
-      console.error(`Error processing file ${file.name}:`, error)
+      logger.error(`Error processing file ${file.name}:`, error)
     }
   }
 

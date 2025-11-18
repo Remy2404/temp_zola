@@ -4,6 +4,7 @@ import {
   defaultPreferences,
 } from "@/lib/user-preference-store/utils"
 import type { UserProfile } from "./types"
+import logger from "@/lib/logger"
 
 export async function getSupabaseUser() {
   // Since Supabase has been removed, return null
@@ -19,7 +20,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     })
     const userData = await response.json()
     if (!response.ok) {
-      console.error("Failed to fetch user profile:", response.statusText)
+      logger.error("Failed to fetch user profile:", response.statusText)
       return null
     }
 
@@ -33,7 +34,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
       preferences: formattedPreferences,
     } as UserProfile
   } catch (error) {
-    console.error("Error fetching user profile:", error)
+    logger.error("Error fetching user profile:", error)
     return null
   }
 }

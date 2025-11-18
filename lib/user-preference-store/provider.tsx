@@ -9,6 +9,7 @@ import {
   type LayoutType,
   type UserPreferences,
 } from "./utils"
+import logger from "@/lib/logger"
 
 export {
   type LayoutType,
@@ -127,7 +128,7 @@ export function UserPreferencesProvider({
         try {
           return await fetchUserPreferences()
         } catch (error) {
-          console.error(
+          logger.error(
             "Failed to fetch user preferences, falling back to localStorage:",
             error
           )
@@ -158,7 +159,7 @@ export function UserPreferencesProvider({
       try {
         return await updateUserPreferences(update)
       } catch (error) {
-        console.error(
+        logger.error(
           "Failed to update user preferences in database, falling back to localStorage:",
           error
         )

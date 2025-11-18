@@ -1,3 +1,4 @@
+import logger from "@/lib/logger"
 import { FREE_MODELS_IDS } from "../config"
 import { ModelConfig } from "./types"
 
@@ -24,7 +25,7 @@ export async function getAllModels(): Promise<ModelConfig[]> {
     lastFetchTime = now
     return dynamicModelsCache
   } catch (error) {
-    console.warn("Failed to load models from backend:", error)
+    logger.warn("Failed to load models from backend:", error)
     return []
   }
 }

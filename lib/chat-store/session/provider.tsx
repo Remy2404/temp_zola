@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { createContext, useContext, useMemo } from "react"
+import logger from "@/lib/logger"
 
 const ChatSessionContext = createContext<{ chatId: string | null }>({
   chatId: null,
@@ -23,7 +24,7 @@ export function ChatSessionProvider({
         return decodeURIComponent(pathAfterC)
       } catch (e) {
         // If decoding fails, use the raw path (handles URLs with special chars that aren't encoded)
-        console.warn('Failed to decode chat ID from URL, using raw path:', pathAfterC)
+        logger.warn('Failed to decode chat ID from URL, using raw path:', pathAfterC)
         return pathAfterC
       }
     }

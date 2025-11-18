@@ -4,6 +4,7 @@
  */
 
 import { telegramWebApp } from '../telegram/client'
+import logger from '@/lib/logger'
 
 // Get API URL from environment
 const API_BASE_URL = process.env.NEXT_PUBLIC_POLYMIND_API_URL || 'http://localhost:8000'
@@ -39,7 +40,7 @@ export async function polymindFetch(endpoint: string, options: RequestInit = {})
   if (!telegramWebApp.isInitialized()) {
     const initialized = await waitForTelegramInit()
     if (!initialized) {
-      console.warn('[Polymind API] Telegram initialization timeout - proceeding with fallback auth')
+      logger.warn('[Polymind API] Telegram initialization timeout - proceeding with fallback auth')
     }
   }
   
@@ -52,11 +53,11 @@ export async function polymindFetch(endpoint: string, options: RequestInit = {})
 
   // Add Telegram authentication if available
   // Backend expects: Authorization: tma {initData}
-  if (initData) {
+    if (initData) {
     (headers as Record<string, string>)['Authorization'] = `tma ${initData}`
-    console.log('[Polymind API] Request authenticated with Telegram init data')
+    logger.info('[Polymind API] Request authenticated with Telegram init data')
   } else {
-    console.warn('[Polymind API] No Telegram init data available - attempting fallback authentication')
+    logger.warn('[Polymind API] No Telegram init data available - attempting fallback authentication')
   }
 
   let url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
@@ -72,10 +73,10 @@ export async function polymindFetch(endpoint: string, options: RequestInit = {})
         // Add user_id as query parameter for fallback authentication
         const separator = url.includes('?') ? '&' : '?'
         url += `${separator}user_id=${encodeURIComponent(userIdParam)}`
-        console.log('[Polymind API] Using fallback authentication with user_id from URL')
+        logger.info('[Polymind API] Using fallback authentication with user_id from URL')
       }
     } catch (error) {
-      console.warn('[Polymind API] Error processing URL parameters:', error)
+      logger.warn('[Polymind API] Error processing URL parameters:', error)
     }
   }
 
@@ -96,7 +97,7 @@ export async function getModels() {
     }
     return await response.json()
   } catch (error) {
-    console.error('Error fetching models:', error)
+    logger.error('Error fetching models:', error)
     throw error
   }
 }
@@ -164,7 +165,7 @@ export async function* streamChatResponse(params: {
             const parsed = JSON.parse(data)
             yield parsed
           } catch {
-            console.error('Failed to parse SSE data:', data)
+            logger.error('Failed to parse SSE data:', data)
           }
         }
       }
@@ -193,7 +194,7 @@ export async function createChat(params: {
     
     return await response.json()
   } catch (error) {
-    console.error('Error creating chat:', error)
+    logger.error('Error creating chat:', error)
     throw error
   }
 }
@@ -219,7 +220,7 @@ export async function getChats(params: {
     
     return await response.json()
   } catch (error) {
-    console.error('Error fetching chats:', error)
+    logger.error('Error fetching chats:', error)
     throw error
   }
 }
@@ -239,7 +240,7 @@ export async function deleteChat(chatId: string) {
     
     return await response.json()
   } catch (error) {
-    console.error('Error deleting chat:', error)
+    logger.error('Error deleting chat:', error)
     throw error
   }
 }
@@ -257,7 +258,7 @@ export async function getUserPreferences() {
     
     return await response.json()
   } catch (error) {
-    console.error('Error fetching preferences:', error)
+    logger.error('Error fetching preferences:', error)
     throw error
   }
 }
@@ -278,7 +279,7 @@ export async function updateUserPreferences(preferences: Record<string, unknown>
     
     return await response.json()
   } catch (error) {
-    console.error('Error updating preferences:', error)
+    logger.error('Error updating preferences:', error)
     throw error
   }
 }
