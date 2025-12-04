@@ -25,12 +25,15 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
+        working-directory: ./temp_zola
         run: npm ci
 
       - name: Run ESLint
+        working-directory: ./temp_zola
         run: npm run lint
 
       - name: Run TypeScript checks
+        working-directory: ./temp_zola
         run: npm run type-check
 
       # TODO: Uncomment when tests are added
@@ -54,13 +57,16 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
+        working-directory: ./temp_zola
         run: npm ci
 
       - name: Generate build cache key
+        working-directory: ./temp_zola
         id: build-cache
         run: echo "key=build-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', 'package-lock.json') }}" >> $GITHUB_OUTPUT
 
       - name: Check build cache
+        working-directory: ./temp_zola
         id: check-build-cache
         uses: actions/cache@v4
         with:
@@ -68,10 +74,12 @@ jobs:
           key: ${{ steps.build-cache.outputs.key }}
 
       - name: Build application
+        working-directory: ./temp_zola
         if: steps.check-build-cache.outputs.cache-hit != 'true'
         run: npm run build
 
       - name: Cache build output
+        working-directory: ./temp_zola
         if: steps.check-build-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
@@ -79,6 +87,7 @@ jobs:
           key: ${{ steps.build-cache.outputs.key }}
 
       - name: Upload build artifacts
+        working-directory: ./temp_zola
         uses: actions/upload-artifact@v4
         with:
           name: build-output
